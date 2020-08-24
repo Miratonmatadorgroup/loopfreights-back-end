@@ -1,0 +1,14 @@
+node_modules/
+.env
+/csv/
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+/config/config.js
+/config/config.js.map
+*.js.map
+*.map
+*.js
+/.idea/
