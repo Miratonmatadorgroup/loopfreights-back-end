@@ -7,10 +7,10 @@ import {UserRole} from "../../models/enums/userRole";
 
 export class TransactionReferenceService {
 
-    public async addTransactionReference(userId: string, amount: number, role: UserRole, reason: TransactionReason, itemId?: string, reference?: string): Promise<ITransactionReference> {
+    public async addTransactionReference(userId: string, amount: number, role: UserRole, reason: TransactionReason, itemId?: string, saveCard = false, reference?: string): Promise<ITransactionReference> {
         reference = reference || TransactionReferenceService.generateReferenceNumber();
         return  await TransactionReference
-            .findOneAndUpdate({userId, reason, itemId}, {amount, itemId, role, reason, reference}, getUpdateOptions())
+            .findOneAndUpdate({userId, reason, itemId}, {amount, itemId, role, reason, reference, saveCard}, getUpdateOptions())
             .lean<ITransactionReference>()
             .exec();
     }

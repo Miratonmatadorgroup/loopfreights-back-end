@@ -6,6 +6,7 @@ import {
     INotification,
     ISocketNotification,
     Notification,
+    NotificationImportance,
     NotificationStrategy,
     TTL
 } from '../../models/notification';
@@ -23,7 +24,7 @@ export class NotificationService {
             if (!notification.content) throw createError('Notification content is required', 400);
             if (!notification.group) throw createError('Notification group is required', 400);
             if (!notification.tag) throw createError('Notification tag is required', 400);
-            if (!notification.importance) throw createError('Notification importance is required', 400);
+            notification.importance = notification.importance || NotificationImportance.HIGH;
             notification.strategy = strategy;
             notification.saveNotification = save;
             notification.itemId = notification.itemId || Types.ObjectId().toHexString();

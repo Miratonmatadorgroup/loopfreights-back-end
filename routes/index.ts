@@ -9,5 +9,6 @@ app.use(require('./middlewares/authenticator'));
 
 app.use('/users', require('./users'));
 app.use('/drivers', require('./drivers'));
+app.use('/admins', require('./admins'));
 
 module.exports = app;

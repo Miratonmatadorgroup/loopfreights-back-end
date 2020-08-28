@@ -1,3 +1,5 @@
+import {IZone} from "../zone";
+
 export interface IGoogleResponse {
     status: string;
 }
@@ -86,6 +88,8 @@ export interface IPlace {
     utc_offset: number;
     vicinity: string;
     website: string;
+    // from zone.ts
+    zone?: IZone;
 }
 export interface IPlaceGeoCodedWaypoint {
     geocoder_status: string;
@@ -95,11 +99,16 @@ export interface IPlaceGeoCodedWaypoint {
 export interface IPlaceRoute {
     summary: string;
     legs: IPlaceLeg[];
+    overview_polyline: IPlaceOverViewPolyline
+}
+
+export interface IPlaceOverViewPolyline {
+    points: string;
 }
 export interface IPlaceLeg {
     steps: IPlaceStep[];
     copyrights: string;
-    overview_polyline: string;
+    overview_polyline: IPlaceOverViewPolyline;
     warnings: string[];
     waypoint_order: number;
     duration: IPlaceDuration;

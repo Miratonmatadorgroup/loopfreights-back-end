@@ -20,6 +20,14 @@ app.post('/register', (req, res, next) => {
     });
 });
 
+app.post('/request_email_verification', (req, res, next) => {
+    new AuthService().requestEmailVerification(req.body).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+});
+
 app.post('/verify_email', (req, res, next) => {
     new AuthService().verifyEmail(req.body).then(result => {
         sendResponse(res, 200, result);

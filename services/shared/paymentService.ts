@@ -9,23 +9,29 @@ import {UserRole} from "../../models/enums/userRole";
 
 export class PaymentService {
 
-    public async chargeKnownReason(userId: string, role: UserRole, body: {amount: number, card: ICard, itemId: string, reason: TransactionReason}): Promise<IPaystackChargeResponse> {
+    public async chargeKnownReason(userId: string, role: UserRole, body: {amount: number, card: ICard, itemId: string, reason: TransactionReason, saveCard?: boolean}): Promise<IPaystackChargeResponse> {
         const amount = body.amount;
         const card = body.card;
         const reason = body.reason;
         const itemId = body.itemId;
+        const saveCard = body.saveCard;
         if (!reason) throw createError('Transaction reason is required', 400);
         if (!itemId) throw createError('Item id is required', 400);
         if (!amount) throw createError('Amount is required', 400);
         if (!card) throw createError('Card is required', 400);
-        if (!card.number) throw createError('Card number is required', 400);
-        if (!card.expYear) throw createError('Card exp year is required', 400);
-        if (!card.expMonth) throw createError('Card exp month is required', 400);
-        if (!card.cvv) throw createError('Card cvv is required', 400);
+        if (!card.authorization) {
+            if (!card.number) throw createError('Card number is required', 400);
+            if (!card.expYear) throw createError('Card exp year is required', 400);
+            if (!card.expMonth) throw createError('Card exp month is required', 400);
+            if (!card.cvv) throw createError('Card cvv is required', 400);
+        }
         switch (reason) {
             case TransactionReason.WALLET_FUNDING:
                 const wallet: IWallet = await new WalletService().getWalletById(userId, itemId);
-                return await new PaystackService().chargeCard(userId, amount, card, wallet._id, role, reason);
+                if (card.authorization)
+                    return await new PaystackService().chargeAuthorization(userId, amount, card.authorization, wallet._id, role, reason);
+                else
+                    return await new PaystackService().chargeCard(userId, amount, card, wallet._id, role, reason, saveCard);
             default:
                 throw createError(`Unknown payment reason '${reason}'`);
         }

@@ -3,44 +3,63 @@ import {IUser} from "./user";
 import {IBilling} from "./interfaces/billing";
 import {model, Model, Schema} from "mongoose";
 import {billingDef} from "./defs/billingDef";
-import {generate} from "voucher-code-generator";
+import {charset, generate} from "voucher-code-generator";
 import {DeliveryState} from "./enums/deliveryState";
 import {IBaseLocation} from "./interfaces/location";
 import {locationDef} from "./defs/locationDef";
 import {IDriverLocation} from "./driverLocation";
+import {IZone} from "./zone";
+import {zoneDef} from "./defs/zoneDef";
+
+export interface IDeliveryLocation extends IBaseLocation {
+    zone?: IZone;
+}
+export interface IParcel extends IBaseDocument {
+    title: string;
+    category: string;
+    quantity: number;
+}
 
 export interface IStop extends IBaseDocument {
     receiver: string | IUser | undefined;
-    location: IBaseLocation;
+    location: IDeliveryLocation;
     state: DeliveryState.PENDING | DeliveryState.DROPPING_OFF | DeliveryState.AWAITING_SIGNATURE | DeliveryState.COMPLETE;
+    zone: IZone;
     dropOffStartTime: Date;
     dropOffEndTime: Date;
     dropOffConfirmed: boolean;
     verificationCode: string;
     lastMessageToReceiver: string;
+    parcel: IParcel;
     rawReceiver: {
         name: string;
-        email: string;
+        phone: string;
     };
 }
 
 export interface IDelivery extends IBaseDocument {
     sender: string | IUser;
     driverLocation: IDriverLocation | undefined;
-    pickUpLocation: IBaseLocation;
+    pickUpLocation: IDeliveryLocation;
     stops: IStop[];
     billing: IBilling;
     state: DeliveryState;
+    deliveryId: string;
     arrivalTime: Date;
     lastMessageToDriver: string;
     lastMessageToSender: string;
+    etaToNextStop: string;
+    pathToNextStop: string;
 }
 
 const deliverySchema = new Schema({
     sender: {type: Schema.Types.ObjectId, ref: 'user', required: true},
     state: {type: String, default: DeliveryState.PENDING},
+    deliveryId: {type: String, default: generate({pattern: "###-###", length: 1, charset: charset("alphanumeric")})[0]},
     billing: billingDef,
-    pickUpLocation: locationDef,
+    pickUpLocation: Object.assign({
+        zone: zoneDef
+    }, locationDef),
     arrivalTime: {type: Date},
     lastMessageToDriver: {type: String, default: 'Please proceed to pick up'},
     lastMessageToSender: {type: String, default: 'Driver is coming to you'},
@@ -49,7 +68,9 @@ const deliverySchema = new Schema({
     }, locationDef),
     stops: {
         type: [{
-            location: locationDef,
+            location: Object.assign({
+                zone: zoneDef
+            }, locationDef),
             receiver: {type: Schema.Types.ObjectId, ref: 'user', required: false},
             state: {type: String, default: DeliveryState.PENDING},
             verificationCode: {type: String, required: true, default: generate({charset: '1234567890', length: 4, count: 1})[0]},
@@ -57,12 +78,19 @@ const deliverySchema = new Schema({
             dropOffEndTime: {type: Date},
             dropOffConfirmed: {type: Boolean, default: false},
             lastMessageToReceiver: {type: String, default: 'Driver has accepted delivery'},
+            parcel: {
+                title: {type: String, required: true},
+                category: {type: Schema.Types.ObjectId, required: true},
+                quantity: {type: Number, default: 1}
+            },
             rawReceiver: {
                 name: {type: String, required: true},
-                email: {type: String, required: true}
+                phone: {type: String, required: true}
             }
         }]
-    }
+    },
+    etaToNextStop: {type: String, required: false},
+    pathToNextStop: {type: String, required: false},
 }, {timestamps: true});
 
 deliverySchema.pre('save', function(this: IDelivery, next) {

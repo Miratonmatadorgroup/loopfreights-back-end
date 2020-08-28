@@ -27,6 +27,7 @@ export interface IPaystackChargeResponse extends IPaystackResponse {
             card_type: string;
             brand: string;
             signature: string;
+            reusable: boolean;
         }
     };
 }

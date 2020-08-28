@@ -1,15 +1,20 @@
 import {
-    IPlaceDirectionsResponse,
+    IDistanceMatrixResponse,
     IGoogleResponse,
     IPlace,
     IPlaceDetailResponse,
+    IPlaceDirectionsResponse,
+    IPlaceDistanceMatrixRow,
     IPlacePrediction,
-    IPlacePredictionResponse, IReverseGeocodeResponse, IPlaceRoute, IPlaceDistanceMatrixRow, IDistanceMatrixResponse
+    IPlacePredictionResponse,
+    IPlaceRoute,
+    IReverseGeocodeResponse
 } from "../../models/interfaces/googleApi";
-import {GoogleApiRoute} from "../../models/enums/googleApiRoute";
+import {GoogleApiRoute, GooglePlaceDetailsSource} from "../../models/enums/googleApi";
 import {config} from "../../config/config";
 import request from "request-promise";
 import {createError} from "../../utils/response";
+import {ZoneService} from "./zoneService";
 
 export class GeolocationService {
 
@@ -21,20 +26,34 @@ export class GeolocationService {
         return result.predictions;
     }
 
-    public async getPlaceDetails(placeId: string): Promise<IPlace | null> {
+    public async getPlaceDetails(placeId: string, source = GooglePlaceDetailsSource.PLACES_API): Promise<IPlace | null> {
         if (!placeId) throw createError('Place id is required', 400);
         const result: IPlaceDetailResponse = await GeolocationService.callGoogle<IPlaceDetailResponse>(
             GeolocationService.createGoogleMapsUri(GoogleApiRoute.PLACE_DETAILS, `?placeid=${placeId}&language=en`)
         );
-        return result.result;
+        if (result.status !== 'OK') throw createError('Unable to get place', 400);
+        if (source === GooglePlaceDetailsSource.PLACES_API) return result.result;
+        const location = result.result?.geometry?.location;
+        return (await this.reverseGeoCode(null, location.lat, location.lng))[0];
     }
 
-    public async reverseGeoCode(latitude: number, longitude: number): Promise<IPlace[]> {
-        if (!latitude) throw createError('Latitude is required', 400);
-        if (!longitude) throw createError('Longitude is required', 400);
+    public async reverseGeoCode(address?: string, latitude?: number, longitude?: number, includeZone = false): Promise<IPlace[]> {
+        if (!address) {
+            if (!latitude) throw createError('Latitude or address is required', 400);
+            if (!longitude) throw createError('Longitude or address is required', 400);
+        }
+        const path = address ? `?address=${encodeURI(address)}` : `?latlng=${latitude},${longitude}`;
         const result: IReverseGeocodeResponse = await GeolocationService.callGoogle<IReverseGeocodeResponse>(
-            GeolocationService.createGoogleMapsUri(GoogleApiRoute.GEOCODE, `?latlng=${latitude},${longitude}`)
+            GeolocationService.createGoogleMapsUri(GoogleApiRoute.GEOCODE, path)
         );
+        if (includeZone) {
+            const zoneService = new ZoneService();
+            result.results = await Promise.all(result.results.map(async place => {
+                const lgaAndState = GeolocationService.getLGAAndStateFromPlace(place);
+                place.zone = await zoneService.getZoneByLga(lgaAndState.lga, false);
+                return place;
+            }));
+        }
         return result.results;
     }
 
@@ -45,7 +64,7 @@ export class GeolocationService {
         });
         const destinationString = destinationStringList.join('|');
         const result: IDistanceMatrixResponse = await GeolocationService.callGoogle<IDistanceMatrixResponse>(
-            GeolocationService.createGoogleMapsUri(GoogleApiRoute.GEOCODE, `?origins=${startLatitude},${startLongitude}&destinations=${destinationString}&region=NG&units=metric`)
+            GeolocationService.createGoogleMapsUri(GoogleApiRoute.DISTANCE_MATRIX, `?origins=${startLatitude},${startLongitude}&destinations=${destinationString}&region=NG&units=metric`)
         );
         return result.rows;
     }
@@ -69,6 +88,13 @@ export class GeolocationService {
         const url = `https://maps.googleapis.com/maps/api/${route}/json`.concat(path).concat(`&key=${config.googleApiKey}`);
         console.log('Calling google: ', url);
         return url;
+    }
+
+    public static getLGAAndStateFromPlace(place: IPlace): {lga?: string, state?: string} {
+        if (!place || !place.address_components) return {lga: null, state: null};
+        const lga: string = place.address_components.filter(addressComponent => addressComponent.types.includes('administrative_area_level_2'))[0]?.long_name;
+        const state: string = place.address_components.filter(addressComponent => addressComponent.types.includes('administrative_area_level_1'))[0]?.long_name;
+        return {lga, state};
     }
 
     private static async callGoogle<T extends IGoogleResponse>(url: string): Promise<T> {

@@ -1,10 +1,8 @@
 import {paymentMethodDef} from "./paymentMethodDef";
 
 export const billingDef = {
-    pricePerKm: {type: Number},
-    baseFare: {type: Number},
-    priceForKm: {type: Number},
     totalFare: {type: Number},
+    onPeek: {type: Boolean, default: false},
     paid: {type: Boolean, default: false},
     paymentMethod: paymentMethodDef,
     error: {

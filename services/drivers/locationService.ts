@@ -1,11 +1,14 @@
 import {DriverLocation, IDriverLocation} from "../../models/driverLocation";
 import {getUpdateOptions} from "../../utils/utils";
 import {createError} from "../../utils/response";
+import {DeliveryService} from "./deliveryService";
 
 export class LocationService {
 
     public async addLocation(userId: string, location: IDriverLocation): Promise<IDriverLocation> {
-        return await DriverLocation.findOneAndUpdate({userId}, location, getUpdateOptions()).lean<IDriverLocation>().exec();
+        const driverLocation: IDriverLocation = await DriverLocation.findOneAndUpdate({userId}, location, getUpdateOptions()).lean<IDriverLocation>().exec();
+        DeliveryService.updateDeliveriesEta(driverLocation);
+        return driverLocation;
     }
 
     public async getLocation(userId: string, validate = true): Promise<IDriverLocation> {

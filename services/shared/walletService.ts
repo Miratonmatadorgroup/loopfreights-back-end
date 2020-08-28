@@ -1,6 +1,6 @@
 import {IWallet, Wallet} from "../../models/wallet";
 import {getUpdateOptions} from "../../utils/utils";
-import {createError} from "../../utils/response";
+import {createError, ErrorStatus} from "../../utils/response";
 import {TransactionReason} from "../../models/enums/transactionReason";
 import {PaymentService} from "./paymentService";
 import {NotificationService} from "./notificationService";
@@ -33,6 +33,19 @@ export class WalletService {
         });
     }
 
+    public async takeValue(userId: string, role: UserRole, amount: number, description: string, dryRun = false): Promise<IWallet> {
+        if (!amount) throw createError('Amount is required', 400);
+        let wallet: IWallet = await WalletService.ensureHasWallet(userId);
+        if (wallet.balance < amount)
+            throw createError(`You don't have up to ${format(amount, {code: 'NGN'})} in your wallet`, 400, ErrorStatus.INSUFFICIENT_BALANCE_IN_WALLET);
+        if (!dryRun) {
+            wallet = await Wallet.findByIdAndUpdate(wallet.id, {$inc: {balance: -1}}).lean<IWallet>().exec();
+            await new TransactionService().addTransaction(TransactionType.DEBIT, PaymentMethodType.WALLET, role, userId,
+                wallet._id, amount, description);
+        }
+        return await WalletService.ensureHasWallet(userId);
+    }
+
     public async getWalletById(userId: string, walletId: string, validate = true): Promise<IWallet> {
         console.log(`Getting wallet. userId: ${userId}, walletId: ${walletId}`);
         const wallet: IWallet = await Wallet.findOne({_id: walletId, userId}).lean<IWallet>().exec();
@@ -53,7 +66,7 @@ export class WalletService {
             title: 'Wallet funded',
             content: `Your wallet has been funded with ${format(amount, {code: 'NGN'})}`,
             tag: NotificationTag.WALLET_FUNDING,
-            group: NotificationGroup.WALLET_FUNDING,
+            group: NotificationGroup.WALLETS,
             importance: NotificationImportance.HIGH,
             itemId: walletId
         }, NotificationStrategy.PUSH_ONLY, false);

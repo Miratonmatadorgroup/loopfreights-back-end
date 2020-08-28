@@ -8,7 +8,6 @@ import {config} from "../../config/config";
 import {EmailVerificationService} from "./emailVerificationService";
 import {AuthVerificationReason} from "../../models/enums/authVerificationReason";
 import {IEmailVerification} from "../../models/emailVerification";
-import {AccountService} from "../shared/accountService";
 import {Types} from "mongoose";
 import {getUpdateOptions} from "../../utils/utils";
 
@@ -38,7 +37,9 @@ export class AuthService {
             throw createError('Email address already in use', 400);
         if (await this.checkPhoneExists(body.phone))
             throw createError('Phone number already in use', 400);
-        body.roles = [role];
+        // TODO:: change
+        // body.roles = [role];
+        body.roles = [UserRole.DRIVER, UserRole.BASIC];
         let user: IUser = new User(AuthService.assignProfile(role, body));
         await user.validate();
         await new PasswordsService().addPassword(user._id, (body as any).password);
@@ -46,6 +47,13 @@ export class AuthService {
         user = await user.save();
         await new EmailVerificationService().requestEmailVerification(user.email, AuthVerificationReason.USER_SIGN_UP);
         return {user, token};
+    }
+
+    public async requestEmailVerification(body: any): Promise<{message: string}> {
+        if (!body.email) throw createError('Email address is required', 400);
+        if (!body.reason) throw createError('Verification reason is required', 400);
+        await new EmailVerificationService().requestEmailVerification(body.email, body.reason);
+        return {message: 'Verification code sent'};
     }
 
     public async verifyEmail(body: any): Promise<{user: IUser, verificationCode: string}> {
@@ -98,11 +106,12 @@ export class AuthService {
             password: body.password
         } as any, role, deviceId);
     }
+
     // noinspection JSMethodCanBeStatic
     private async addAuthToken(user: IUser, role: UserRole, deviceId: string): Promise<string> {
         const userId: string = user._id;
         const token = AuthService.generateToken(user);
-        const authToken: IAuthToken = await AuthToken.findOneAndUpdate({userId, role}, {
+        const authToken: IAuthToken = await AuthToken.findOneAndUpdate({userId, role, deviceId}, {
             deviceId, token
         }, {runValidators: true, setDefaultsOnInsert: true, upsert: true, new: true}).lean<IAuthToken>().exec();
         return authToken.token;
@@ -115,12 +124,12 @@ export class AuthService {
     }
 
     public async verifyToken(userId: string, token: string, deviceId: string): Promise<IAuthToken> {
-        // console.log(`Verifying token. User: ${userId}, token: ${token}, deviceId: ${deviceId}`);
+        console.log(`Verifying token. User: ${userId}, deviceId: ${deviceId}`);
         return await AuthToken.findOne({userId, deviceId, token}).lean<IAuthToken>().exec();
     }
 
-    public async getAuthToken(token: string, role: UserRole, validate = true): Promise<IAuthToken> {
-        const authToken: IAuthToken = await AuthToken.findOne({token, role}).lean<IAuthToken>().exec();
+    public async getAuthToken(token: string, deviceId: string, validate = true): Promise<IAuthToken> {
+        const authToken: IAuthToken = await AuthToken.findOne({token, deviceId}).lean<IAuthToken>().exec();
         if (!authToken && validate) throw createError('Auth token not found', 400);
         return authToken;
     }

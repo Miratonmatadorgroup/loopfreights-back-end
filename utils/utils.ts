@@ -31,3 +31,7 @@ export const stripUpdateFields = <T> (model): T => {
 export const getUpdateOptions = (): {runValidators: boolean, setDefaultsOnInsert: boolean, upsert: boolean, new: boolean} => {
     return {runValidators: true, setDefaultsOnInsert: true, upsert: true, new: true};
 };
+
+export const roundToNearestMultiple = (value: number, multiple: number): number => {
+    return Math.ceil(value / multiple) * multiple;
+};

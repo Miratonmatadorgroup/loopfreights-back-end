@@ -4,6 +4,22 @@ import {sendError, sendResponse} from "../../utils/response";
 import { DeliveryService } from "../../services/drivers/deliveryService";
 const app = Router();
 
+app.get('/', (req, res, next) => {
+    new DeliveryService().getActiveDeliveries(reqAsAny(req).query.userId).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+});
+
+app.get('/requests', (req, res, next) => {
+    new DeliveryService().getDeliveryRequests(reqAsAny(req).query.userId).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+});
+
 app.post('/accept', (req, res, next) => {
     new DeliveryService().acceptDelivery(reqAsAny(req).query.userId, req.body.deliveryId).then(result => {
         sendResponse(res, 200, result);
@@ -46,6 +62,14 @@ app.post('/end_drop_off', (req, res, next) => {
 
 app.post('/confirm_delivery', (req, res, next) => {
     new DeliveryService().confirmDelivery(reqAsAny(req).query.userId, req.body.deliveryId, req.body).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+});
+
+app.get('/:id', (req, res, next) => {
+    new DeliveryService().getDeliveryById(req.params.id).then(result => {
         sendResponse(res, 200, result);
     }).catch(err => {
         sendError(err, next);

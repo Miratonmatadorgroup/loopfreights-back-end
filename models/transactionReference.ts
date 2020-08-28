@@ -11,6 +11,7 @@ export interface ITransactionReference extends IBaseDocument {
     role: UserRole;
     used: boolean;
     itemId: string;
+    saveCard: boolean;
 }
 
 const transactionReferenceSchema = new Schema({
@@ -20,7 +21,8 @@ const transactionReferenceSchema = new Schema({
     reason: {type: String, required: true},
     role: {type: String, required: true},
     used: {type: Boolean, default: false},
-    itemId: {type: String, required: false}
+    itemId: {type: String, required: false},
+    saveCard: {type: Boolean, default: false}
 }, {timestamps: true});
 
 export const TransactionReference: Model<ITransactionReference> = model<ITransactionReference>('transactionReference', transactionReferenceSchema);

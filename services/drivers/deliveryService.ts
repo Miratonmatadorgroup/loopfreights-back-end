@@ -15,8 +15,23 @@ import {DeliveryState} from "../../models/enums/deliveryState";
 import {IUser} from "../../models/user";
 import {DeliveryService as UsersDeliveryService} from "../users/deliveryService";
 import moment from "moment";
+import {GeolocationService} from "../shared/geolocationService";
 
 export class DeliveryService {
+
+    public async getDeliveryRequests(userId: string): Promise<IDelivery[]> {
+        return await Delivery.find({state: DeliveryState.PENDING})
+            .populate('sender driverLocation.userId stops.receiver')
+            .sort({createdAt: 'desc'})
+            .lean<IDelivery>().exec();
+    }
+
+    public async getActiveDeliveries(userId: string): Promise<IDelivery[]> {
+        return await Delivery.find({'driverLocation.userId' : userId, state: {$in: DeliveryService.getActiveDeliveryStates()}})
+            .populate('sender driverLocation.userId stops.receiver')
+            .sort({createdAt: 'desc'})
+            .lean<IDelivery>().exec();
+    }
 
     public async acceptDelivery(userId: string, id: string): Promise<IDelivery> {
         let delivery: IDelivery = await this.getDeliveryById(id);
@@ -24,7 +39,7 @@ export class DeliveryService {
             throw createError('Delivery already accepted', 400);
         const driverLocation = await new LocationService().getLocation(userId);
         (driverLocation as any).driver = userId;
-        delivery = await Delivery.findByIdAndUpdate(id, {driverLocation, state: DeliveryState.ACCEPTED}, {new: true})
+        delivery = await Delivery.findByIdAndUpdate(id, {driverLocation, state: DeliveryState.ACCEPTED, pathToNextStop: null, etaToNextStop: null}, {new: true})
             .populate(DeliveryService.getPopulateFields())
             .lean<IDelivery>().exec();
         const sender: IUser = delivery.sender as IUser;
@@ -41,12 +56,12 @@ export class DeliveryService {
             `Delivery accepted`,
             `Please proceed to pick up from ${sender.firstName}`
         );
-        return delivery;
+        return await this.getDeliveryById(delivery._id);
     }
 
     public async startPickUp(userId: string, id: string): Promise<IDelivery> {
         let delivery: IDelivery = await this.getDeliveryById(id, userId);
-        delivery = await Delivery.findByIdAndUpdate(delivery._id, {state: DeliveryState.ACCEPTED}, {new: true})
+        delivery = await Delivery.findByIdAndUpdate(delivery._id, {state: DeliveryState.PICKING_UP}, {new: true})
             .populate(DeliveryService.getPopulateFields())
             .lean<IDelivery>().exec();
         const driver: IUser = delivery.driverLocation.userId as IUser;
@@ -58,11 +73,11 @@ export class DeliveryService {
         );
         delivery = await DeliveryService.sendNotificationUpdate(
             delivery._id,
-            `Delivery accepted`,
-            `Delivery accepted`,
+            `Pickup started`,
+            `Pickup started`,
             `Start your drive to ${delivery.pickUpLocation.address}`
         );
-        return delivery;
+        return await this.getDeliveryById(delivery._id);
     }
 
     public async arrived(userId: string, id: string): Promise<IDelivery> {
@@ -85,7 +100,7 @@ export class DeliveryService {
             `Please wait`,
             `${sender.firstName} should be with you shortly`
         );
-        return delivery;
+        return await this.getDeliveryById(delivery._id);
     }
 
     public async startDropOff(userId: string, id: string): Promise<IDelivery> {
@@ -123,7 +138,7 @@ export class DeliveryService {
                 pendingStop
             );
         }
-        return delivery;
+        return await this.getDeliveryById(delivery._id);
     }
 
     public async endDropOff(userId: string, id: string): Promise<IDelivery> {
@@ -162,7 +177,7 @@ export class DeliveryService {
                 currentStop
             );
         }
-        return delivery;
+        return await this.getDeliveryById(delivery._id);
     }
 
     public async confirmDelivery(userId: string, id: string, body: any) {
@@ -218,10 +233,10 @@ export class DeliveryService {
                 currentStop
             );
         }
-        return delivery;
+        return await this.getDeliveryById(delivery._id);
     }
 
-    private static async sendNotificationUpdate(deliveryId: string, ticker: string, title: string, content: string, group = NotificationGroup.DELIVERY_UPDATE, tag = NotificationTag.DELIVERY_UPDATE): Promise<IDelivery> {
+    private static async sendNotificationUpdate(deliveryId: string, ticker: string, title: string, content: string, group = NotificationGroup.DELIVERIES, tag = NotificationTag.DELIVERY_UPDATE): Promise<IDelivery> {
         const delivery: IDelivery = await Delivery.findByIdAndUpdate(deliveryId, {lastMessageToDriver: content})
             .populate(DeliveryService.getPopulateFields())
             .lean<IDelivery>().exec();
@@ -250,6 +265,88 @@ export class DeliveryService {
         return delivery;
     }
 
+    public static updateDeliveriesEta(location: IDriverLocation) {
+        new Promise(async (accept, reject) => {
+            try {
+                const deliveries: IDelivery[] = await Delivery.find({
+                    'driverLocation.userId': location.userId,
+                    state: {$in: DeliveryService.getHandlingDeliveryStates()}
+                })
+                    .populate('sender driverLocation.userId stops.receiver')
+                    .sort({createdAt: 'desc'})
+                    .lean<IDelivery>().exec();
+                const geoLocationService = new GeolocationService();
+                for (const delivery of deliveries) {
+                    const stopLocation: IBaseLocation = DeliveryService.getCurrentStopLocation(delivery);
+                    if (!stopLocation) continue;
+                    const distanceMatrix = await geoLocationService.getDistanceMatrix(
+                        location.latitude,
+                        location.longitude,
+                        [stopLocation]
+                    );
+                    const placeRoutes = await geoLocationService.getDirections(
+                        location.latitude,
+                        location.longitude,
+                        stopLocation.latitude,
+                        stopLocation.longitude
+                    );
+                    const etaToNextStop = distanceMatrix[0]?.elements[0]?.duration?.text;
+                    const pathToNextStop = placeRoutes[0]?.overview_polyline?.points;
+                    console.log('Duration in seconds: ', etaToNextStop, pathToNextStop);
+                    if (!etaToNextStop) continue;
+                    const updatedDelivery = await Delivery.findByIdAndUpdate(delivery._id, {etaToNextStop, pathToNextStop}, {new: true})
+                        .populate(DeliveryService.getPopulateFields())
+                        .sort({createdAt: 'desc'})
+                        .lean<IDelivery>().exec();
+                    const driver: IUser = delivery.driverLocation?.userId as IUser;
+                    const sender: IUser = delivery.sender as IUser;
+                    const receiver: IUser = this.getCurrentStop(delivery)?.receiver as IUser;
+                    new NotificationService().sendNotification({
+                        userId: driver._id,
+                        role: UserRole.DRIVER,
+                        ticker: 'Delivery update',
+                        title: 'Delivery update',
+                        content: 'Delivery update',
+                        group: NotificationGroup.DELIVERIES,
+                        tag: NotificationTag.DELIVERY_UPDATE,
+                        itemId: delivery._id,
+                        payload: updatedDelivery,
+                        importance: NotificationImportance.HIGH
+                    }, NotificationStrategy.SOCKET_ONLY, false);
+                    new NotificationService().sendNotification({
+                        userId: sender._id,
+                        role: UserRole.BASIC,
+                        ticker: 'Delivery update',
+                        title: 'Delivery update',
+                        content: 'Delivery update',
+                        group: NotificationGroup.DELIVERIES,
+                        tag: NotificationTag.DELIVERY_UPDATE,
+                        itemId: delivery._id,
+                        payload: updatedDelivery,
+                        importance: NotificationImportance.HIGH
+                    }, NotificationStrategy.SOCKET_ONLY, false);
+                    if (receiver) {
+                        new NotificationService().sendNotification({
+                            userId: receiver._id,
+                            role: UserRole.BASIC,
+                            ticker: 'Delivery update',
+                            title: 'Delivery update',
+                            content: 'Delivery update',
+                            group: NotificationGroup.DELIVERIES,
+                            tag: NotificationTag.DELIVERY_UPDATE,
+                            itemId: delivery._id,
+                            payload: updatedDelivery,
+                            importance: NotificationImportance.HIGH
+                        }, NotificationStrategy.SOCKET_ONLY, false);
+                    }
+                }
+                accept();
+            } catch (e) {
+                reject(e);
+            }
+        }).catch(err => console.error('Error updating deliveries eta: ', err));
+    }
+
     private static getPendingStop(delivery: IDelivery, validate = true): IStop | null {
         const stops: IStop[] = delivery.stops;
         const pendingStop = stops.filter(stop => stop.state === DeliveryState.PENDING)[0];
@@ -262,6 +359,21 @@ export class DeliveryService {
         const stops: IStop[] = delivery.stops;
         const currentStop = stops.filter(stop => stop.state === DeliveryState.DROPPING_OFF)[0];
         return currentStop != null ? currentStop : stops[delivery.stops.length - 1];
+    }
+
+    private static getCurrentStopLocation(delivery: IDelivery): IBaseLocation | null {
+        switch (delivery.state) {
+            case DeliveryState.ACCEPTED: return delivery.pickUpLocation;
+            case DeliveryState.PICKING_UP: return delivery.pickUpLocation;
+            case DeliveryState.DROPPING_OFF: {
+                const currentStop = DeliveryService.getCurrentStop(delivery);
+                return currentStop?.location;
+            }
+            case DeliveryState.AWAITING_SIGNATURE: {
+                const currentStop = DeliveryService.getCurrentStop(delivery);
+                return currentStop?.location;
+            }
+        }
     }
 
     private static getCurrentReceiver(delivery: IDelivery): IUser | undefined {
@@ -283,7 +395,7 @@ export class DeliveryService {
                         ticker: `Delivery request`,
                         title: `Delivery request`,
                         content: `New delivery request around ${pickupLocation.address}`,
-                        group: NotificationGroup.DELIVERY_REQUEST,
+                        group: NotificationGroup.DELIVERIES,
                         tag: NotificationTag.DELIVERY_REQUEST,
                         importance: NotificationImportance.HIGH,
                         useSound: true
@@ -299,5 +411,21 @@ export class DeliveryService {
 
     private static getPopulateFields(): string {
         return 'sender driverLocation.userId stops.receiver';
+    }
+
+    public static getActiveDeliveryStates(): DeliveryState[] {
+        return [
+            DeliveryState.PENDING,
+            DeliveryState.ACCEPTED,
+            DeliveryState.PICKING_UP,
+            DeliveryState.DROPPING_OFF
+        ];
+    }
+
+    public static getHandlingDeliveryStates(): DeliveryState[] {
+        return [
+            DeliveryState.PICKING_UP,
+            DeliveryState.DROPPING_OFF
+        ];
     }
 }

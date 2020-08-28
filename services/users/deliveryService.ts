@@ -12,14 +12,21 @@ import {
 } from "../../models/notification";
 import {NotificationService} from "../shared/notificationService";
 import {UserRole} from "../../models/enums/userRole";
+import {IBilling} from "../../models/interfaces/billing";
+import {ParcelCategoryService} from "../shared/parcelCategoryService";
+import {normalizePhone, stripUpdateFields} from "../../utils/utils";
+import {PaymentMethodType} from "../../models/enums/paymentMethod";
+import {WalletService} from "../shared/walletService";
 
 export class DeliveryService {
 
     public async getActiveDeliveries(userId: string): Promise<IDelivery[]> {
         return await Delivery.find(Object.assign(
             DeliveryService.getOwnedDeliveryConditions(userId),
-            {state: {$in: DeliveryService.getActiveDeliveryStates()}}
-        )).populate('sender driverLocation.userId stops.receiver').lean<IDelivery>().exec();
+            {state: {$in: DeliveryService.getActiveDeliveryStates()}}))
+            .populate('sender driverLocation.userId stops.receiver')
+            .sort({createdAt: 'desc'})
+            .lean<IDelivery>().exec();
     }
 
     public async getPastDeliveries(userId: string): Promise<IDelivery[]> {
@@ -29,33 +36,43 @@ export class DeliveryService {
         )).populate('sender driverLocation.userId stops.receiver').lean<IDelivery>().exec();
     }
 
-    public async requestDelivery(userId: string, body: IDelivery): Promise<IDelivery> {
-        body.sender = userId;
-        if (!body.pickUpLocation || !body.pickUpLocation.latitude || !body.pickUpLocation.longitude)
-            throw createError('Pick up location is required', 400);
-        if (!body.stops || body.stops.length === 0) throw createError('At least one stop is required', 400);
-        body.stops = await Promise.all(body.stops.map(async (stop, index) => {
-            const stopIndex = index + 1;
-            if (!(stop as any).receiverName) throw createError(`Receiver name has not been set at stop ${stopIndex}`, 400);
-            if (!(stop as any).receiverEmail) throw createError(`Receiver email has not been set at stop ${stopIndex}`, 400);
-            if (!stop.location || !stop.location.latitude || !stop.location.longitude)
-                throw createError(`Location has not been set for stop ${stopIndex}`, 400);
-            const name = (stop as any).receiverName;
-            const email = (stop as any).receiverEmail;
-            const receiver: IUser = await User.findOne({email}).lean<IUser>().exec();
-            stop.rawReceiver = {name, email};
-            if (receiver) stop.receiver = receiver._id;
+    public async getBilling(userId: string, delivery: IDelivery): Promise<IBilling> {
+        delivery = await DeliveryService.validateDelivery(delivery);
+        const parcelCategoryService = new ParcelCategoryService();
+        const preferenceService = new PreferenceService();
+        const onPeek = false;
+        const paymentMethod = await preferenceService.getPaymentMethodPreference(userId);
+        const stops: IStop[] = await Promise.all([].concat(...delivery.stops).map(async (stop: IStop) => {
+            (stop as any).price = await parcelCategoryService.getCurrentCategoryPrice(stop.parcel.category, stop.location.zone, onPeek);
             return stop;
         }));
-        const preferenceService = new PreferenceService();
-        body.billing = {
-            paymentMethod: await preferenceService.getPaymentMethodPreference(userId),
-            baseFare: 0,
-            paid: false,
-            priceForKm: 0,
-            pricePerKm: 0
-        };
-        const delivery: IDelivery = await new Delivery(body).save();
+        const totalFare: number = stops.reduce((total, currentValue) => {
+            total += (currentValue as any).price;
+            return total;
+        }, 0);
+        return {totalFare, onPeek, paymentMethod};
+    }
+
+    public async checkBalance(userId: string, role: UserRole, delivery: IDelivery): Promise<IBilling>  {
+        const billing = await this.getBilling(userId, delivery);
+        if (billing.paymentMethod.type === PaymentMethodType.WALLET) {
+            await new WalletService().takeValue(userId, role, billing.totalFare, 'Payment for delivery', true);
+        }
+        return billing;
+    }
+
+    public async requestDelivery(userId: string, role: UserRole, body: IDelivery): Promise<IDelivery> {
+        body = await DeliveryService.validateDelivery(body);
+        body.sender = userId;
+        body.billing = await this.getBilling(userId, body);
+        const billing = body.billing;
+        stripUpdateFields(body);
+        let delivery = new Delivery(body);
+        await delivery.validate();
+        if (billing.paymentMethod.type === PaymentMethodType.WALLET) {
+            await new WalletService().takeValue(userId, role, billing.totalFare, `Payment for delivery '${delivery._id}'`, true);
+        }
+        delivery = await new Delivery(body).save();
         HandlerDeliveryService.notifyClosestDriversOfNewDelivery(delivery);
         return await this.getDeliveryById(delivery._id);
     }
@@ -69,7 +86,32 @@ export class DeliveryService {
         return delivery;
     }
 
-    public static async sendNotificationUpdate(deliveryId: string, ticker: string, title: string, content: string, currentStop?: IStop, group = NotificationGroup.DELIVERY_UPDATE, tag = NotificationTag.DELIVERY_UPDATE): Promise<IDelivery> {
+    public static async validateDelivery(delivery: IDelivery): Promise<IDelivery> {
+        console.log('Validating: ', JSON.stringify(delivery));
+        if (!delivery.pickUpLocation || !delivery.pickUpLocation.latitude || !delivery.pickUpLocation.longitude)
+            throw createError('Pick up location is required', 400);
+        if (!delivery.stops || delivery.stops.length === 0) throw createError('At least one stop is required', 400);
+        delivery.stops = await Promise.all(delivery.stops.map(async (stop, index) => {
+            const stopIndex = index + 1;
+            if (!stop.rawReceiver?.name) throw createError(`Receiver name has not been set at stop ${stopIndex}`, 400);
+            if (!stop.rawReceiver?.phone) throw createError(`Receiver phone has not been set at stop ${stopIndex}`, 400);
+            if (!stop.location || !stop.location.latitude || !stop.location.longitude)
+                throw createError(`Location has not been set for stop ${stopIndex}`, 400);
+            if (!stop.location.zone) throw createError(`Zone has not been set at stop ${stopIndex}`, 400);
+            if (!stop.location.zone.zoneClass) throw createError(`Zone class has not been set at stop ${stopIndex}`, 400);
+            if (!stop.parcel) throw createError(`Parcel has not been set at stop ${stopIndex}`, 400);
+            if (!stop.parcel.title) throw createError(`Parcel title has not been set at stop ${stopIndex}`, 400);
+            if (!stop.parcel.category) throw createError(`Parcel category has not been set at stop ${stopIndex}`, 400);
+            if (!stop.parcel.quantity || stop.parcel.quantity < 1) throw createError(`Parcel quantity at stop ${stopIndex} cannot be lower than 1`, 400);
+            const phone = normalizePhone(stop.rawReceiver.phone);
+            const receiver: IUser = await User.findOne({phone}).lean<IUser>().exec();
+            if (receiver) stop.receiver = receiver._id;
+            return stop;
+        }));
+        return delivery;
+    }
+
+    public static async sendNotificationUpdate(deliveryId: string, ticker: string, title: string, content: string, currentStop?: IStop, group = NotificationGroup.DELIVERIES, tag = NotificationTag.DELIVERY_UPDATE): Promise<IDelivery> {
         const deliveryService = new DeliveryService();
         const delivery: IDelivery = await deliveryService.getDeliveryById(deliveryId);
         const sender: IUser = delivery.sender as IUser;

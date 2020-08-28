@@ -1,10 +1,8 @@
 import {IPaymentMethod} from "./paymentMethod";
 
 export interface IBilling {
-    pricePerKm: number;
-    baseFare: number;
-    priceForKm?: number;
-    totalFare?: number;
+    totalFare: number;
+    onPeek: boolean;
     paid?: boolean;
     paymentMethod?: IPaymentMethod;
     error?: {

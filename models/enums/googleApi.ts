@@ -5,3 +5,8 @@ export enum GoogleApiRoute {
     DIRECTIONS = 'directions',
     DISTANCE_MATRIX = 'distancematrix',
 }
+
+export enum GooglePlaceDetailsSource {
+    PLACES_API = 'places',
+    GEOCODE_API = 'geocode'
+}

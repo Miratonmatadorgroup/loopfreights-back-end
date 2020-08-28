@@ -38,8 +38,7 @@ const createStatusCodeError = (err, statusCode?: number): Error => {
 export enum ErrorStatus {
     SUCCESS = 'success',
     FAILED = 'failed',
-    NO_BUSINESS_PROFILE = 'no_business_profile',
-    BUSINESS_PROFILE_DISABLED = 'business_profile_disabled',
+    INSUFFICIENT_BALANCE_IN_WALLET = 'insufficient_balance_in_wallet'
 }
 
 export {sendResponse, sendError, createError, createStatusCodeError};

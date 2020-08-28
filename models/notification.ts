@@ -9,16 +9,16 @@ export enum TTL {
     XXX= 3600
 }
 export enum NotificationGroup {
-    WALLET_PAYMENT = 'wallet_payment',
-    WALLET_FUNDING = 'wallet_funding',
-    DELIVERY_REQUEST = 'delivery_request',
-    DELIVERY_UPDATE = 'delivery_update',
+    WALLETS = 'wallet_funding',
+    CARDS = 'new_card',
+    DELIVERIES = 'delivery_request',
     ONLINE = 'online',
 }
 
 export enum NotificationTag {
     WALLET_PAYMENT = 'wallet_payment',
     WALLET_FUNDING = 'wallet_funding',
+    NEW_CARD = 'new_card',
     DELIVERY_REQUEST = 'delivery_request',
     DELIVERY_UPDATE = 'delivery_update',
     ONLINE = 'online',
@@ -46,7 +46,7 @@ export interface ISocketNotification {
 }
 
 export interface IFirebaseNotification extends ISocketNotification {
-    importance: NotificationImportance;
+    importance?: NotificationImportance;
     content: string;
     itemId?: string;
     ticker?: string;

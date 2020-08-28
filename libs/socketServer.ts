@@ -77,12 +77,14 @@ export class SocketServer {
 
     public async processData(data: any, socket: any) {
         const userId = socket.userId;
+        const role = socket.role;
         const socketData: SocketData = SocketServer.parseData(data);
         if (!socketData) return;
         console.log('Processing in event: ', socketData.event);
         const locationService = new LocationService();
         switch (socketData.event) {
             case SocketEvent.IN_EVENT_DRIVER_LOCATION:
+                if (role !== UserRole.DRIVER) return ;
                 const handlerLocation: IDriverLocation = socketData.payloadTo<IDriverLocation>();
                 if (!handlerLocation || !handlerLocation.latitude) return console.warn('Invalid location: ', handlerLocation);
                 await locationService.addLocation(userId, handlerLocation);
@@ -139,12 +141,12 @@ async function verifyClient(info, next) {
         const role: UserRole = info.req.headers.role || reqUrl.searchParams.get('role') || UserRole.BASIC;
         console.log(`>>Verifying client. Authorization: ${authorization}, deviceId: ${deviceId}, role: ${role}`);
         if (!authorization || !deviceId) throw createError('Unauthorized', 401);
-        const authToken: IAuthToken = await new AuthService().getAuthToken(authorization, role, false);
+        const authToken: IAuthToken = await new AuthService().getAuthToken(authorization, deviceId, false);
         console.log('Auth token: ', authToken);
-        if (!authToken) throw createError('Unauthorized', 401);
+        if (!authToken) throw createError('Unauthorized. Token not found', 401);
         const accountService = new AccountService();
         const user: IUser = await accountService.getAccount(authToken.userId, false);
-        if (!user) throw createError('Unauthorized', 401);
+        if (!user) throw createError('Unauthorized. User not found', 401);
         const profile: IUserProfile = role === UserRole.DRIVER ? user.driverProfile : user.userProfile;
         if (role === UserRole.DRIVER) {
             const error = await accountService.validateDriverRequirements(authToken.userId);
