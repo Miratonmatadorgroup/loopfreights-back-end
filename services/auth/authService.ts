@@ -136,13 +136,13 @@ export class AuthService {
 
     // noinspection JSMethodCanBeStatic
     private async checkEmailExists(email: string): Promise<boolean> {
-        const count = await User.estimatedDocumentCount({email}).exec();
+        const count = await User.countDocuments({email}).exec();
         return count > 0;
     }
 
     // noinspection JSMethodCanBeStatic
     private async checkPhoneExists(phone: string): Promise<boolean> {
-        const count = await User.estimatedDocumentCount({phone}).exec();
+        const count = await User.countDocuments({phone}).exec();
         return count > 0;
     }
 

@@ -17,6 +17,7 @@ const sendResponse = (res: Response, statusCode: number, result: any, message?: 
 const sendError = (err: Error, next: NextFunction) => {
     const error: any = new Error(err ? err.message : "A server error just occurred");
     error.statusCode = err && (err as any).statusCode ? (err as any).statusCode : 500;
+    error.status = (err as any).status || ErrorStatus.FAILED;
     next(error);
 };
 

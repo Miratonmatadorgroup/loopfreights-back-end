@@ -265,11 +265,11 @@ export class DeliveryService {
         return delivery;
     }
 
-    public static updateDeliveriesEta(location: IDriverLocation) {
+    public static updateDeliveriesEta(driverLocation: IDriverLocation) {
         new Promise(async (accept, reject) => {
             try {
                 const deliveries: IDelivery[] = await Delivery.find({
-                    'driverLocation.userId': location.userId,
+                    'driverLocation.userId': driverLocation.userId,
                     state: {$in: DeliveryService.getHandlingDeliveryStates()}
                 })
                     .populate('sender driverLocation.userId stops.receiver')
@@ -280,13 +280,13 @@ export class DeliveryService {
                     const stopLocation: IBaseLocation = DeliveryService.getCurrentStopLocation(delivery);
                     if (!stopLocation) continue;
                     const distanceMatrix = await geoLocationService.getDistanceMatrix(
-                        location.latitude,
-                        location.longitude,
+                        driverLocation.latitude,
+                        driverLocation.longitude,
                         [stopLocation]
                     );
                     const placeRoutes = await geoLocationService.getDirections(
-                        location.latitude,
-                        location.longitude,
+                        driverLocation.latitude,
+                        driverLocation.longitude,
                         stopLocation.latitude,
                         stopLocation.longitude
                     );
@@ -294,7 +294,7 @@ export class DeliveryService {
                     const pathToNextStop = placeRoutes[0]?.overview_polyline?.points;
                     console.log('Duration in seconds: ', etaToNextStop, pathToNextStop);
                     if (!etaToNextStop) continue;
-                    const updatedDelivery = await Delivery.findByIdAndUpdate(delivery._id, {etaToNextStop, pathToNextStop}, {new: true})
+                    const updatedDelivery = await Delivery.findByIdAndUpdate(delivery._id, {driverLocation, etaToNextStop, pathToNextStop}, {new: true})
                         .populate(DeliveryService.getPopulateFields())
                         .sort({createdAt: 'desc'})
                         .lean<IDelivery>().exec();
