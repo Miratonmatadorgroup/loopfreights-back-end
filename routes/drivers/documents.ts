@@ -14,7 +14,7 @@ app.get('/documents', (req, res, next) => {
 });
 
 app.post('/documents',  upload.single('file'), (req, res, next) => {
-    new DriverDocumentService().addDocument(reqAsAny(req).query.userId, req.file, req.body).then(result => {
+    new DriverDocumentService().addDocument(reqAsAny(req).query.userId, reqAsAny(req).file, req.body).then(result => {
         sendResponse(res, 200, result);
     }).catch(err => {
         sendError(err, next);

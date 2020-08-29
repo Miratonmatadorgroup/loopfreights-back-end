@@ -39,7 +39,7 @@ export class WalletService {
         if (wallet.balance < amount)
             throw createError(`You don't have up to ${format(amount, {code: 'NGN'})} in your wallet`, 400, ErrorStatus.INSUFFICIENT_BALANCE_IN_WALLET);
         if (!dryRun) {
-            wallet = await Wallet.findByIdAndUpdate(wallet.id, {$inc: {balance: -1}}).lean<IWallet>().exec();
+            wallet = await Wallet.findByIdAndUpdate(wallet._id, {$inc: {balance: -1}}).lean<IWallet>().exec();
             await new TransactionService().addTransaction(TransactionType.DEBIT, PaymentMethodType.WALLET, role, userId,
                 wallet._id, amount, description);
         }
