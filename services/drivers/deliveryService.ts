@@ -50,13 +50,13 @@ export class DeliveryService {
             `Delivery accepted`,
             `${driver.firstName} has accepted your delivery`,
         );
-        delivery = await DeliveryService.sendNotificationUpdate(
+        await DeliveryService.sendNotificationUpdate(
             delivery._id,
             `Delivery accepted`,
             `Delivery accepted`,
             `Please proceed to pick up from ${sender.firstName}`
         );
-        return await this.getDeliveryById(delivery._id);
+        return await this.getDeliveryById(id);
     }
 
     public async startPickUp(userId: string, id: string): Promise<IDelivery> {
@@ -71,13 +71,13 @@ export class DeliveryService {
             `Delivery En-Route`,
             `${driver.firstName} is coming to you`
         );
-        delivery = await DeliveryService.sendNotificationUpdate(
+        await DeliveryService.sendNotificationUpdate(
             delivery._id,
             `Pickup started`,
             `Pickup started`,
             `Start your drive to ${delivery.pickUpLocation.address}`
         );
-        return await this.getDeliveryById(delivery._id);
+        return await this.getDeliveryById(id);
     }
 
     public async arrived(userId: string, id: string): Promise<IDelivery> {
@@ -94,13 +94,13 @@ export class DeliveryService {
             `Driver has arrived`,
             `Please don't keep ${driver.firstName} waiting`
         );
-        delivery = await DeliveryService.sendNotificationUpdate(
+        await DeliveryService.sendNotificationUpdate(
             delivery._id,
             `Wait for ${sender.firstName}`,
             `Please wait`,
             `${sender.firstName} should be with you shortly`
         );
-        return await this.getDeliveryById(delivery._id);
+        return await this.getDeliveryById(id);
     }
 
     public async startDropOff(userId: string, id: string): Promise<IDelivery> {
@@ -123,7 +123,7 @@ export class DeliveryService {
             `Driver is delivering`,
             `${driver.firstName} is now delivering to ${pendingStop.rawReceiver.name}`
         );
-        delivery = await DeliveryService.sendNotificationUpdate(
+        await DeliveryService.sendNotificationUpdate(
             delivery._id,
             `Drop off started`,
             `Drop off started`,
@@ -138,7 +138,7 @@ export class DeliveryService {
                 pendingStop
             );
         }
-        return await this.getDeliveryById(delivery._id);
+        return await this.getDeliveryById(id);
     }
 
     public async endDropOff(userId: string, id: string): Promise<IDelivery> {
@@ -162,7 +162,7 @@ export class DeliveryService {
             `Driver is waiting for confirmation`,
             `Please input code (${currentStop.verificationCode}) or send to receiver for confirmation`,
         );
-        delivery = await DeliveryService.sendNotificationUpdate(
+        await DeliveryService.sendNotificationUpdate(
             delivery._id,
             `Please collect signature`,
             `Please collect signature`,
@@ -177,7 +177,7 @@ export class DeliveryService {
                 currentStop
             );
         }
-        return await this.getDeliveryById(delivery._id);
+        return await this.getDeliveryById(id);
     }
 
     public async confirmDelivery(userId: string, id: string, body: any) {
@@ -204,7 +204,7 @@ export class DeliveryService {
                 `Delivery confirmed`,
                 `Delivery to ${currentStop.rawReceiver.name} has been confirmed. ${driver.firstName} will deliver to ${nextStop.rawReceiver.name} next`
             );
-            delivery = await DeliveryService.sendNotificationUpdate(
+            await DeliveryService.sendNotificationUpdate(
                 delivery._id,
                 `Delivery confirmed`,
                 `Delivery confirmed`,
@@ -217,7 +217,7 @@ export class DeliveryService {
                 `Delivery confirmed`,
                 `Thank you for using LoopFreights`
             );
-            delivery = await DeliveryService.sendNotificationUpdate(
+            await DeliveryService.sendNotificationUpdate(
                 delivery._id,
                 `Delivery confirmed`,
                 `Delivery confirmed`,
@@ -233,7 +233,7 @@ export class DeliveryService {
                 currentStop
             );
         }
-        return await this.getDeliveryById(delivery._id);
+        return await this.getDeliveryById(id);
     }
 
     private static async sendNotificationUpdate(deliveryId: string, ticker: string, title: string, content: string, group = NotificationGroup.DELIVERIES, tag = NotificationTag.DELIVERY_UPDATE): Promise<IDelivery> {
