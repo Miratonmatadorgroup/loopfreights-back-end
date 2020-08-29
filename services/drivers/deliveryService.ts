@@ -60,7 +60,7 @@ export class DeliveryService {
     }
 
     public async startPickUp(userId: string, id: string): Promise<IDelivery> {
-        let delivery: IDelivery = await this.getDeliveryById(id, userId);
+        let delivery: IDelivery = await this.getDeliveryById(id);
         delivery = await Delivery.findByIdAndUpdate(delivery._id, {state: DeliveryState.PICKING_UP}, {new: true})
             .populate(DeliveryService.getPopulateFields())
             .lean<IDelivery>().exec();
@@ -81,7 +81,7 @@ export class DeliveryService {
     }
 
     public async arrived(userId: string, id: string): Promise<IDelivery> {
-        let delivery: IDelivery = await this.getDeliveryById(id, userId);
+        let delivery: IDelivery = await this.getDeliveryById(id);
         const arrivalTime = moment().toDate();
         delivery = await Delivery.findByIdAndUpdate(delivery._id, {arrivalTime}, {new: true})
             .populate(DeliveryService.getPopulateFields())
@@ -104,7 +104,7 @@ export class DeliveryService {
     }
 
     public async startDropOff(userId: string, id: string): Promise<IDelivery> {
-        let delivery: IDelivery = await this.getDeliveryById(id, userId);
+        let delivery: IDelivery = await this.getDeliveryById(id);
         const pendingStop: IStop = DeliveryService.getPendingStop(delivery);
         const dropOffStartTime = moment().toDate();
         delivery = await Delivery.findOneAndUpdate({_id: id, 'stops._id': pendingStop._id}, {
@@ -142,7 +142,7 @@ export class DeliveryService {
     }
 
     public async endDropOff(userId: string, id: string): Promise<IDelivery> {
-        let delivery: IDelivery = await this.getDeliveryById(id, userId);
+        let delivery: IDelivery = await this.getDeliveryById(id);
         const currentStop: IStop = DeliveryService.getCurrentStop(delivery);
         const nextStop: IStop = DeliveryService.getPendingStop(delivery, false);
         const dropOffEndTime = moment().toDate();
@@ -183,7 +183,7 @@ export class DeliveryService {
     public async confirmDelivery(userId: string, id: string, body: any) {
         const verificationCode = body.verificationCode;
         if (!verificationCode) throw createError('Verification code is required', 400);
-        let delivery: IDelivery = await this.getDeliveryById(id, userId);
+        let delivery: IDelivery = await this.getDeliveryById(id);
         const currentStop: IStop = DeliveryService.getCurrentStop(delivery);
         if (verificationCode !== currentStop.verificationCode)
             throw createError('Incorrect confirmation code', 400);
@@ -255,9 +255,8 @@ export class DeliveryService {
         return delivery;
     }
 
-    public async getDeliveryById(id: string, driverId?: string, validate = true): Promise<IDelivery> {
-        const query = driverId ? {_id: id, 'driverLocation.userId': driverId} : {_id: id};
-        const delivery: IDelivery = await Delivery.findOne(query)
+    public async getDeliveryById(id: string, validate = true): Promise<IDelivery> {
+        const delivery: IDelivery = await Delivery.findById(id)
             .populate(DeliveryService.getPopulateFields())
             .lean<IDelivery>().exec();
         if (!delivery && validate)
