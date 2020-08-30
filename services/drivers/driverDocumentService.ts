@@ -33,10 +33,20 @@ export class DriverDocumentService {
 
     public static async ensureHasDocuments(userId: string): Promise<IDriverDocument[]> {
         for (const type of Object.values(DriverDocumentType)) {
+            const name = this.getDocumentName(type);
             const requiresImage = DriverDocumentService.doesDocumentRequireImage(type);
-            await DriverDocument.findOneAndUpdate({userId, type}, {requiresImage}, getUpdateOptions()).exec();
+            await DriverDocument.findOneAndUpdate({userId, type}, {name, requiresImage}, getUpdateOptions()).exec();
         }
         return await DriverDocument.find({userId}).lean<IDriverDocument>().exec();
+    }
+
+    public static getDocumentName(type: DriverDocumentType): string {
+        switch (type) {
+            case DriverDocumentType.DRIVER_LICENCE: return 'Driver License';
+            case DriverDocumentType.FULL_PICTURE: return 'Full picture';
+            case DriverDocumentType.HOME_ADDRESS: return 'Home Address';
+            case DriverDocumentType.PHONE_NUMBER__OF_NEXT_OF_KIN: return 'Phone number of next of kin';
+        }
     }
 
     public static doesDocumentRequireImage(type: DriverDocumentType) {

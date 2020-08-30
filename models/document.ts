@@ -4,6 +4,7 @@ import {model, Model, Schema} from "mongoose";
 
 export interface IDriverDocument extends IBaseDocument {
     userId: string;
+    name: string;
     type: DriverDocumentType;
     imageUri: string;
     imageUriThumbnail: string;
@@ -14,6 +15,7 @@ export interface IDriverDocument extends IBaseDocument {
 
 const driverDocumentSchema = new Schema({
     userId: {type: Schema.Types.ObjectId, ref: 'user', required: true},
+    name: {type: String, required: true},
     type: {type: String, required: true},
     imageUri: {type: String, required: false},
     imageUriThumbnail: {type: String, required: false},
