@@ -45,6 +45,7 @@ export class UploadService {
 
     public async uploadFile(file, container: ImageContainer): Promise<string> {
         if (!file) throw createError('File missing', 400);
+        console.log(`Aws access key: ${config.awsAccessKey}, aws access key id: ${config.awsAccessKeyId}`);
         await s3.createBucket({Bucket: container, ACL: 'public-read'}).promise();
         const fileStream = fs.createReadStream(file.path);
         const uploadResult = await s3.upload({
@@ -54,6 +55,7 @@ export class UploadService {
             ContentType: file.mimetype,
             ACL: 'public-read'
         }).promise();
+        UploadService.removeFile(file.path);
         return uploadResult.Location;
     }
 
@@ -72,6 +74,10 @@ export class UploadService {
         }
         console.log('Upload directory: ', uploadDirectory);
         return uploadDirectory;
+    }
+
+    public static removeFile(filePath: string) {
+        fs.unlinkSync(filePath);
     }
 }
 

@@ -21,7 +21,8 @@ export class AuthService {
             throw createError('Account does not exist', 400);
         if (!await new PasswordsService().checkPassword(user._id, (body as any).password))
             throw createError('Incorrect password', 400);
-        const update = Object.assign(AuthService.assignProfile(role, body, user), {$addToSet: {roles: role}});
+        // const update = Object.assign(AuthService.assignProfile(role, body, user), {$addToSet: {roles: role}});
+        const update = AuthService.assignProfile(role, body, user);
         user = await User.findByIdAndUpdate(user._id, update, getUpdateOptions()).lean<IUser>().exec();
         const token = await this.addAuthToken(user, role, deviceId);
         return {user, token};
@@ -38,8 +39,9 @@ export class AuthService {
         if (await this.checkPhoneExists(body.phone))
             throw createError('Phone number already in use', 400);
         // TODO:: change
-        // body.roles = [role];
-        body.roles = [UserRole.DRIVER, UserRole.BASIC];
+        const userRole = (body as any).role || role
+        body.roles = [userRole];
+        // body.roles = [UserRole.DRIVER, UserRole.BASIC];
         let user: IUser = new User(AuthService.assignProfile(role, body));
         await (user as any).validate();
         await new PasswordsService().addPassword(user._id, (body as any).password);

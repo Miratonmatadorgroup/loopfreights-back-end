@@ -4,6 +4,7 @@ import {createError} from "../../utils/response";
 import {IUser, User} from "../../models/user";
 import {PreferenceService} from "../shared/preferenceService";
 import {DeliveryService as HandlerDeliveryService} from "../drivers/deliveryService";
+import {EmailNotificationService as AdminEmailNotificationService} from "../admins/emailNotificationService";
 import {
     NotificationGroup,
     NotificationImportance,
@@ -17,6 +18,8 @@ import {ParcelCategoryService} from "../shared/parcelCategoryService";
 import {normalizePhone, stripUpdateFields} from "../../utils/utils";
 import {PaymentMethodType} from "../../models/enums/paymentMethod";
 import {WalletService} from "../shared/walletService";
+import {EmailTemplateId} from "../../models/interfaces/emailTemplatePayload";
+import {format} from "currency-formatter";
 
 export class DeliveryService {
 
@@ -73,7 +76,43 @@ export class DeliveryService {
             await new WalletService().takeValue(userId, role, billing.totalFare, `Payment for delivery '${delivery._id}'`, true);
         }
         delivery = await new Delivery(body).save();
+        delivery = await this.getDeliveryById(delivery._id);
         HandlerDeliveryService.notifyClosestDriversOfNewDelivery(delivery);
+        const sender = delivery.sender as IUser;
+        const lastStop: IStop = delivery.stops[delivery.stops.length - 1];
+        new AdminEmailNotificationService().sendEmail(
+            `New Delivery`,
+            `New Delivery`,
+            {
+                templateId: EmailTemplateId.ADMIN_DELIVERY_UPDATE,
+                data: [
+                    {
+                        key: 'title',
+                        value: `${sender.firstName} placed a delivery`
+                    },
+                    {
+                        key: 'pick_up_location',
+                        value: delivery.pickUpLocation.address
+                    },
+                    {
+                        key: 'drop_off_location',
+                        value: lastStop.location?.address
+                    },
+                    {
+                        key: 'sender',
+                        value: sender.firstName
+                    },
+                    {
+                        key: 'parcel',
+                        value: lastStop.parcel.title
+                    },
+                    {
+                        key: 'price',
+                        value: format(delivery.billing.totalFare, {code: 'NGN'})
+                    }
+                ]
+            }
+        )
         return await this.getDeliveryById(delivery._id);
     }
 

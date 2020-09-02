@@ -33,6 +33,11 @@ export class DeliveryService {
             .lean<IDelivery>().exec();
     }
 
+    public async getActiveDeliveriesCount(userId: string): Promise<number> {
+        return await Delivery.countDocuments({'driverLocation.userId' : userId, state: {$in: DeliveryService.getActiveDeliveryStates()}})
+            .exec();
+    }
+
     public async acceptDelivery(userId: string, id: string): Promise<IDelivery> {
         let delivery: IDelivery = await this.getDeliveryById(id);
         if (delivery.state !== DeliveryState.PENDING)

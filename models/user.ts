@@ -7,6 +7,8 @@ export interface IUserProfile extends IBaseDocument {
     message: string;
     totalRating: number;
     averageRating: number;
+    profileImage: string;
+    profileImageThumbnail: string;
 }
 export interface IUser extends IBaseDocument {
     firstName: string;
@@ -31,13 +33,17 @@ const userSchema = new Schema({
         enabled: {type: Boolean, default: false},
         message: {type: String, default: 'Documents not uploaded'},
         totalRating: {type: Number, default: 0},
-        averageRating: {type: Number, default: 5}
+        averageRating: {type: Number, default: 5},
+        profileImage: {type: String, required: false},
+        profileImageThumbnail: {type: String, required: false},
     },
     userProfile: {
         _id: {type: Schema.Types.ObjectId, default: Types.ObjectId()},
         enabled: {type: Boolean, default: true},
         totalRating: {type: Number, default: 0},
-        averageRating: {type: Number, default: 5}
+        averageRating: {type: Number, default: 5},
+        profileImage: {type: String, required: false},
+        profileImageThumbnail: {type: String, required: false},
     }
 }, {timestamps: true});
 
