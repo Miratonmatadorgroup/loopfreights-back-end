@@ -3,7 +3,7 @@ import {createError} from "../../utils/response";
 import {PasswordsService} from "../shared/passwordsService";
 import {UserRole} from "../../models/enums/userRole";
 import {AuthToken, IAuthToken} from "../../models/authToken";
-import {sign} from "jsonwebtoken";
+import {decode, sign, verify} from "jsonwebtoken";
 import {config} from "../../config/config";
 import {EmailVerificationService} from "./emailVerificationService";
 import {AuthVerificationReason} from "../../models/enums/authVerificationReason";
@@ -25,6 +25,16 @@ export class AuthService {
         const update = AuthService.assignProfile(role, body, user);
         user = await User.findByIdAndUpdate(user._id, update, getUpdateOptions()).lean<IUser>().exec();
         const token = await this.addAuthToken(user, role, deviceId);
+        return {user, token};
+    }
+
+    public async addToRole(body: any): Promise<{user: IUser, token: string}> {
+        if (!body.role) throw createError('Role is required', 400);
+        if (!body.token) throw createError('Token is required', 400);
+        const role = body.role;
+        const token = body.token
+        let user: IUser = await verify(body.token, process.env.JWT_SECRET) as IUser;
+        user = await User.findByIdAndUpdate(user._id, {$addToSet: {roles: role}}, getUpdateOptions()).lean<IUser>().exec();
         return {user, token};
     }
 

@@ -12,6 +12,14 @@ app.post('/login', (req, res, next) => {
     });
 });
 
+app.post('/roles', (req, res, next) => {
+    new AuthService().addToRole(req.body).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+});
+
 app.post('/register', (req, res, next) => {
     new AuthService().register(req.body, reqAsAny(req).query.role, reqAsAny(req).query.deviceId).then(result => {
         sendResponse(res, 200, result);
