@@ -20,6 +20,7 @@ import {PaymentMethodType} from "../../models/enums/paymentMethod";
 import {WalletService} from "../shared/walletService";
 import {EmailTemplateId} from "../../models/interfaces/emailTemplatePayload";
 import {format} from "currency-formatter";
+import {ImageContainer, UploadService} from "../../routes/shared/uploadService";
 
 export class DeliveryService {
 
@@ -64,8 +65,18 @@ export class DeliveryService {
         return billing;
     }
 
-    public async requestDelivery(userId: string, role: UserRole, body: IDelivery): Promise<IDelivery> {
+    public async requestDelivery(userId: string, role: UserRole, files: {originalname: string, filename: string, imageUri?: string}[], body: IDelivery): Promise<IDelivery> {
+        console.log('Files:', files);
+        console.log('Body: ', body);
+        for (const file of files) {
+            file.imageUri = await new UploadService().uploadFile(file, ImageContainer.IMAGES);
+        }
+        body.pickUpLocation = JSON.parse(body.pickUpLocation as any);
+        body.stops = Array.isArray(body.stops) ? body.stops.map(stop => JSON.parse(stop as any)) : [JSON.parse(body.stops)];
         body = await DeliveryService.validateDelivery(body);
+        for (const stop of body.stops) {
+            stop.parcel.contentUri = (files.filter(file => file.originalname.includes(stop.identifier))[0]).imageUri;
+        }
         body.sender = userId;
         body.billing = await this.getBilling(userId, body);
         const billing = body.billing;
@@ -114,6 +125,13 @@ export class DeliveryService {
             }
         )
         return await this.getDeliveryById(delivery._id);
+    }
+
+    public async rate(id: string, body: any): Promise<IDelivery> {
+        if (!body.rating) throw createError('Rating is required', 400);
+        const delivery: IDelivery = await Delivery.findByIdAndUpdate(id, {userRating: body.rating}).exec();
+        HandlerDeliveryService.assignAverageRating(delivery.driverLocation.userId as string)
+        return await this.getDeliveryById(id);
     }
 
     public async getDeliveryById(id: string, validate = true): Promise<IDelivery> {

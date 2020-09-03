@@ -18,9 +18,11 @@ export interface IParcel extends IBaseDocument {
     title: string;
     category: string;
     quantity: number;
+    contentUri: string;
 }
 
 export interface IStop extends IBaseDocument {
+    identifier: string;
     receiver: string | IUser | undefined;
     location: IDeliveryLocation;
     state: DeliveryState.PENDING | DeliveryState.DROPPING_OFF | DeliveryState.AWAITING_SIGNATURE | DeliveryState.COMPLETE;
@@ -50,6 +52,8 @@ export interface IDelivery extends IBaseDocument {
     lastMessageToSender: string;
     etaToNextStop: string;
     pathToNextStop: string;
+    userRating: number;
+    riderRating: number;
 }
 
 const deliverySchema = new Schema({
@@ -68,6 +72,7 @@ const deliverySchema = new Schema({
     }, locationDef),
     stops: {
         type: [{
+            identifier: {type: String, required: true},
             location: Object.assign({
                 zone: zoneDef
             }, locationDef),
@@ -81,7 +86,8 @@ const deliverySchema = new Schema({
             parcel: {
                 title: {type: String, required: true},
                 category: {type: Schema.Types.ObjectId, required: true},
-                quantity: {type: Number, default: 1}
+                quantity: {type: Number, default: 1},
+                contentUri: {type: String, required: true}
             },
             rawReceiver: {
                 name: {type: String, required: true},
@@ -91,6 +97,8 @@ const deliverySchema = new Schema({
     },
     etaToNextStop: {type: String, required: false},
     pathToNextStop: {type: String, required: false},
+    userRating: {type: Number, default: 0},
+    riderRating: {type: Number, default: 0},
 }, {timestamps: true});
 
 deliverySchema.pre('save', function(this: IDelivery, next) {

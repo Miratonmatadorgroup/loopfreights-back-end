@@ -1,6 +1,7 @@
 import {Router} from "express";
 const app = Router();
 
+app.use('/accounts', require('./accounts'));
 app.use('/wallets', require('./wallets'));
 app.use('/payments', require('./payments'));
 app.use('/cards', require('./cards'));

@@ -12,7 +12,7 @@ import {
 import {UserRole} from "../../models/enums/userRole";
 import {createError} from "../../utils/response";
 import {DeliveryState} from "../../models/enums/deliveryState";
-import {IUser} from "../../models/user";
+import {IUser, User} from "../../models/user";
 import {DeliveryService as UsersDeliveryService} from "../users/deliveryService";
 import moment from "moment";
 import {GeolocationService} from "../shared/geolocationService";
@@ -222,6 +222,15 @@ export class DeliveryService {
                 `Delivery confirmed`,
                 `Thank you for using LoopFreights`
             );
+            await UsersDeliveryService.sendNotificationUpdate(
+                delivery._id,
+                `Please rate your rider`,
+                `Please rate your rider`,
+                `Your feedback is very important to us`,
+                currentStop,
+                NotificationGroup.DELIVERIES,
+                NotificationTag.RATE
+            );
             await DeliveryService.sendNotificationUpdate(
                 delivery._id,
                 `Delivery confirmed`,
@@ -231,7 +240,7 @@ export class DeliveryService {
         }
         if (receiver) {
             await UsersDeliveryService.sendNotificationUpdate(
-                receiver._id,
+                delivery._id,
                 `Delivery confirmed`,
                 `Delivery confirmed`,
                 `Thank you for using LoopFreights`,
@@ -411,6 +420,29 @@ export class DeliveryService {
         }).catch(err => {
             console.error('Error notifying drivers of new delivery: ', err);
         });
+    }
+
+    public static assignAverageRating(driverId: string) {
+        new Promise(async (accept, reject) => {
+            try {
+                console.log('Assigning average rating: ', driverId);
+                const deliveries: IDelivery[] = await Delivery.find({'driverLocation.userId': driverId}).lean<IDelivery>().exec();
+                const totalDeliveries: number = deliveries.length
+                const totalRating: number = deliveries.reduce((total, currentValue) => {
+                    total += currentValue.userRating
+                    return total;
+                }, 0);
+                const average = totalRating / totalDeliveries;
+                await User.findByIdAndUpdate(driverId, {
+                    'driverProfile.averageRating': average,
+                    'driverProfile.totalRating': totalRating,
+                }).exec();
+            } catch (e) {
+                reject(e);
+            }
+        }).catch(err => {
+            console.error('Error applying average rating');
+        })
     }
 
     private static getPopulateFields(): string {

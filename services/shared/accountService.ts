@@ -12,6 +12,11 @@ export class AccountService {
         return user;
     }
 
+    public async editAccount(userId: string, body: any): Promise<IUser> {
+        await User.findByIdAndUpdate(userId, body).exec();
+        return await this.getAccount(userId);
+    }
+
     public async validateDriverRequirements(userId: string): Promise<Error | null> {
         return null;
     }

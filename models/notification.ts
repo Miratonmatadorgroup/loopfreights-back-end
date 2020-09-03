@@ -21,6 +21,7 @@ export enum NotificationTag {
     NEW_CARD = 'new_card',
     DELIVERY_REQUEST = 'delivery_request',
     DELIVERY_UPDATE = 'delivery_update',
+    RATE = 'rate',
     ONLINE = 'online',
 }
 
