@@ -37,7 +37,9 @@ export class DeliveryService {
         return await Delivery.find(Object.assign(
             DeliveryService.getOwnedDeliveryConditions(userId),
             {state: {$in: DeliveryService.getCompleteDeliveryStates()}}
-        )).populate('sender driverLocation.userId stops.receiver').lean<IDelivery>().exec();
+        )).populate('sender driverLocation.userId stops.receiver')
+            .sort({createdAt: 'desc'})
+            .lean<IDelivery>().exec();
     }
 
     public async getBilling(userId: string, delivery: IDelivery): Promise<IBilling> {

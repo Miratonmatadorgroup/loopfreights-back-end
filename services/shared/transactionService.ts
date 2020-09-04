@@ -14,7 +14,7 @@ export class TransactionService {
 
     public async getTransactions(userId: string, type?: TransactionType, paymentType?: PaymentMethodType): Promise<ITransaction[]> {
         const conditions = type ? {userId, type, paymentType} : {userId, paymentType};
-        return await Transaction.find(conditions).lean<ITransaction>().exec();
+        return await Transaction.find(conditions).lean<ITransaction>().sort({createdAt: 'desc'}).exec();
     }
 
     public async getTransaction(id: string, validate = true): Promise<ITransaction> {
