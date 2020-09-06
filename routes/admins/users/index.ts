@@ -1,0 +1,30 @@
+import {Router} from "express";
+import {sendError, sendResponse} from "../../../utils/response";
+import {UsersService} from "../../../services/admins/users/usersService";
+const app = Router();
+
+app.get('/', (req, res, next) => {
+    new UsersService().getUsers().then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+})
+
+app.get('/:id', (req, res, next) => {
+    new UsersService().getUser(req.params.id).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+})
+
+app.post('/:id/message', (req, res, next) => {
+    new UsersService().messageUser(req.params.id, req.body).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+})
+
+module.exports = app

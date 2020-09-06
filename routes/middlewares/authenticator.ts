@@ -4,6 +4,7 @@ import {verify} from "jsonwebtoken";
 import {AuthService} from "../../services/auth/authService";
 
 module.exports = async (req, res, next) => {
+    console.log('Authenticating...')
     let token = req.headers['x-access-token'] || req.headers.authorization;
     const deviceId = req.header('deviceId');
     if (!token) return next(createError("Authorization field missing", 401));

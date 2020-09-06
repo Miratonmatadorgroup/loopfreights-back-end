@@ -11,7 +11,7 @@ export class DriverDocumentService {
 
     public async getDocuments(userId: string): Promise<{documents: IDriverDocument[], requiredDocuments: IDriverDocument[]}> {
         const documents: IDriverDocument[] = await DriverDocument.find({userId}).lean<IDriverDocument>().exec();
-        const requiredDocuments: IDriverDocument[] = await DriverDocumentService.getRequiredDocuments(userId);
+        const requiredDocuments: IDriverDocument[] = await DriverDocumentService.getRequiredDocuments();
         return {documents, requiredDocuments};
     }
 
@@ -57,7 +57,7 @@ export class DriverDocumentService {
         SocketServer.closeConnection(userId, UserRole.DRIVER, reason)
     }
 
-    public static async getRequiredDocuments(userId: string): Promise<IDriverDocument[]> {
+    public static async getRequiredDocuments(): Promise<IDriverDocument[]> {
         const documents: IDriverDocument[] = []
         for (const type of Object.values(DriverDocumentType)) {
             const name = this.getDocumentName(type);

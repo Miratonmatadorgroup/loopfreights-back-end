@@ -31,6 +31,7 @@ app.get('/', (req, res, next) => {
   sendResponse(res, 200, {message: 'Loops Core API V1'});
 });
 
+app.use('/v1/admins', require('./routes/admins'));
 app.use('/v1', require('./routes'));
 
 // catch 404 and forward to error handler

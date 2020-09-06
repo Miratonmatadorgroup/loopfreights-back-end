@@ -7,5 +7,6 @@ export const config = {
     paystackAuthorization: process.env.PAYSTACK_AUTHORIZATION,
     googleApiKey: process.env.GOOGLE_API_KEY,
     awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    awsAccessKey: process.env.AWS_ACCESS_KEY
+    awsAccessKey: process.env.AWS_ACCESS_KEY,
+    loopsAdminUrl: process.env.LOOPS_ADMIN_URL
 };

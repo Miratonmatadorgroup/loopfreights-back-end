@@ -12,6 +12,8 @@ export enum NotificationGroup {
     WALLETS = 'wallet_funding',
     CARDS = 'new_card',
     DELIVERIES = 'delivery_request',
+    ACCOUNT_UPDATE = 'account_update',
+    USER_MESSAGE = 'user_message',
     ONLINE = 'online',
 }
 
@@ -21,6 +23,8 @@ export enum NotificationTag {
     NEW_CARD = 'new_card',
     DELIVERY_REQUEST = 'delivery_request',
     DELIVERY_UPDATE = 'delivery_update',
+    ACCOUNT_UPDATE = 'account_update',
+    USER_MESSAGE = 'user_message',
     RATE = 'rate',
     ONLINE = 'online',
 }

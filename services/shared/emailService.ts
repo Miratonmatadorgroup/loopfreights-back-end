@@ -23,10 +23,11 @@ export class EmailService {
                 from, to: email, subject, text, html: text,
                 templateId: emailTemplatePayload ? emailTemplatePayload.templateId : null,
                 dynamicTemplateData: dynamicTemplateData
-            }).catch(err => {
+            }).then(value => accept(value)).catch(err => {
                 reject(err);
             });
-            accept();
+        }).then(value => {
+            console.log('SendGrid email sent: ', value)
         }).catch(err => {
             console.error('SendGrid send error: ', err);
         });
