@@ -5,7 +5,7 @@ import {sendError, sendResponse} from "../../utils/response";
 const app = Router();
 
 app.get('/', (req, res, next) => {
-    new TransactionService().getTransactions(reqAsAny(req).query.type, reqAsAny(req).query.paymentType).then(result => {
+    new TransactionService().getTransactions(reqAsAny(req).query.userId, reqAsAny(req).query.type, reqAsAny(req).query.paymentType).then(result => {
         sendResponse(res, 200, result);
     }).catch(err => {
         sendError(err, next);
