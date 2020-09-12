@@ -131,7 +131,9 @@ export class DeliveryService {
 
     public async rate(id: string, body: any): Promise<IDelivery> {
         if (!body.rating) throw createError('Rating is required', 400);
-        const delivery: IDelivery = await Delivery.findByIdAndUpdate(id, {userRating: body.rating}).exec();
+        const userRating = body.rating;
+        const userComment = body.comment;
+        const delivery: IDelivery = await Delivery.findByIdAndUpdate(id, {userRating, userComment}).exec();
         HandlerDeliveryService.assignAverageRating(delivery.driverLocation.userId as string)
         return await this.getDeliveryById(id);
     }

@@ -56,6 +56,8 @@ export interface IDelivery extends IBaseDocument {
     pathToNextStop: string;
     userRating: number;
     riderRating: number;
+    userComment: string;
+    riderComment: string;
 }
 
 const deliverySchema = new Schema({
@@ -102,6 +104,8 @@ const deliverySchema = new Schema({
     pathToNextStop: {type: String, required: false},
     userRating: {type: Number, default: 0},
     riderRating: {type: Number, default: 0},
+    userComment: {type: String},
+    riderComment: {type: String}
 }, {timestamps: true});
 
 deliverySchema.pre('save', function(this: IDelivery, next) {
