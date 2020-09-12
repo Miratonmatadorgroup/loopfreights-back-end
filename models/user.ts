@@ -9,6 +9,7 @@ export interface IUserProfile extends IBaseDocument {
     averageRating: number;
     profileImage: string;
     profileImageThumbnail: string;
+    platformFees: number;
 }
 export interface IUser extends IBaseDocument {
     firstName: string;
@@ -36,6 +37,7 @@ const userSchema = new Schema({
         averageRating: {type: Number, default: 5},
         profileImage: {type: String, required: false},
         profileImageThumbnail: {type: String, required: false},
+        platformFees: {type: Number, default: 30}
     },
     userProfile: {
         _id: {type: Schema.Types.ObjectId, default: Types.ObjectId()},

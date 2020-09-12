@@ -27,6 +27,7 @@ export interface IStop extends IBaseDocument {
     location: IDeliveryLocation;
     state: DeliveryState.PENDING | DeliveryState.DROPPING_OFF | DeliveryState.AWAITING_SIGNATURE | DeliveryState.COMPLETE;
     zone: IZone;
+    pickUpStartTime: Date;
     dropOffStartTime: Date;
     dropOffEndTime: Date;
     dropOffConfirmed: boolean;
@@ -47,6 +48,7 @@ export interface IDelivery extends IBaseDocument {
     billing: IBilling;
     state: DeliveryState;
     deliveryId: string;
+    acceptedTime: Date;
     arrivalTime: Date;
     lastMessageToDriver: string;
     lastMessageToSender: string;
@@ -64,6 +66,7 @@ const deliverySchema = new Schema({
     pickUpLocation: Object.assign({
         zone: zoneDef
     }, locationDef),
+    acceptedTime: {type: Date},
     arrivalTime: {type: Date},
     lastMessageToDriver: {type: String, default: 'Please proceed to pick up'},
     lastMessageToSender: {type: String, default: 'Driver is coming to you'},

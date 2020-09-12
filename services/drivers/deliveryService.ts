@@ -44,7 +44,8 @@ export class DeliveryService {
             throw createError('Delivery already accepted', 400);
         const driverLocation = await new LocationService().getLocation(userId);
         (driverLocation as any).driver = userId;
-        delivery = await Delivery.findByIdAndUpdate(id, {driverLocation, state: DeliveryState.ACCEPTED, pathToNextStop: null, etaToNextStop: null}, {new: true})
+        const acceptedTime = moment().toDate();
+        delivery = await Delivery.findByIdAndUpdate(id, {driverLocation, acceptedTime, state: DeliveryState.ACCEPTED, pathToNextStop: null, etaToNextStop: null}, {new: true})
             .populate(DeliveryService.getPopulateFields())
             .lean<IDelivery>().exec();
         const sender: IUser = delivery.sender as IUser;
