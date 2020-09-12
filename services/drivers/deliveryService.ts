@@ -16,6 +16,7 @@ import {IUser, User} from "../../models/user";
 import {DeliveryService as UsersDeliveryService} from "../users/deliveryService";
 import moment from "moment";
 import {GeolocationService} from "../shared/geolocationService";
+import {EarningService} from "../shared/earningService";
 
 export class DeliveryService {
 
@@ -238,6 +239,8 @@ export class DeliveryService {
                 `Delivery confirmed`,
                 `Thank you for your service`
             );
+            // Add Driver Earnings
+            await new EarningService().addEarning(driver._id, UserRole.DRIVER, delivery.billing.totalFare, driver.driverProfile.platformFees);
         }
         if (receiver) {
             await UsersDeliveryService.sendNotificationUpdate(
