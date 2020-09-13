@@ -16,6 +16,10 @@ export class ZoneService {
         return await new Zone(body).save();
     }
 
+    public async getZones(): Promise<IZone[]> {
+        return await Zone.find().lean<IZone>().exec();
+    }
+
     // noinspection JSMethodCanBeStatic
     private async doesZoneExist(name): Promise<boolean> {
         const count = await Zone.countDocuments({name}).exec();

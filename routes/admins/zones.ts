@@ -11,4 +11,12 @@ app.post('/', (req, res, next) => {
     });
 });
 
+app.get('/', (req, res, next) => {
+    new ZoneService().getZones().then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+});
+
 module.exports = app;

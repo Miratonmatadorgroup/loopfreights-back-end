@@ -1,6 +1,9 @@
-import {getZoneClasses} from "../../models/enums/zoneClass";
+import {getZoneClasses, ZoneClass} from "../../models/enums/zoneClass";
 import {IParcelCategory, ParcelCategory} from "../../models/parcelCategory";
 import {createError} from "../../utils/response";
+import {IZone} from "../../models/zone";
+import {ZoneService} from "./zoneService";
+import {stripUpdateFields} from "../../utils/utils";
 
 export class ParcelCategoryService {
 
@@ -19,6 +22,31 @@ export class ParcelCategoryService {
             throw createError(`Parcel category with title '${body.title} already exists'`, 400);
         body.tags = body.description.split(',').map(tag => tag.trim().toLowerCase());
         return  await new ParcelCategory(body).save();
+    }
+
+    public async getParcelCategories(): Promise<IParcelCategory[]> {
+        const zones: IZone[] = await new ZoneService().getZones();
+        const zoneMap: Map<ZoneClass, IZone> = new Map<ZoneClass, IZone>(zones.map(zone => {
+            return [zone.zoneClass, zone];
+        }))
+        return (await ParcelCategory.find()
+            .lean<IParcelCategory>()
+            .exec()).map(parcelCategory => {
+                parcelCategory.billing = parcelCategory.billing.map(billing => {
+                    billing.zone = zoneMap.get(billing.zoneClass);
+                    return billing;
+                });
+                return parcelCategory;
+        });
+    }
+
+    public async updateParcelCategory(id: string, body: IParcelCategory): Promise<IParcelCategory> {
+        stripUpdateFields(body)
+        const parcelCategory: IParcelCategory = await ParcelCategory.findByIdAndUpdate(id, body)
+            .lean<IParcelCategory>()
+            .exec();
+        if (!parcelCategory) throw createError('Parcel category not found', 404);
+        return parcelCategory;
     }
 
     // noinspection JSMethodCanBeStatic

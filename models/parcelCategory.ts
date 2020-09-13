@@ -1,11 +1,14 @@
 import {IBaseDocument} from "./interfaces/baseInterface";
 import {ZoneClass} from "./enums/zoneClass";
 import {model, Model, Schema} from "mongoose";
+import {IZone} from "./zone";
 
 export interface IParcelBilling {
     zoneClass: ZoneClass;
     price: number;
     priceOnPeek: number;
+    // For Mapping
+    zone?: IZone
 }
 export interface IParcelCategory extends IBaseDocument {
     title: string;
