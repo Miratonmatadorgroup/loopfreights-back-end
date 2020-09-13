@@ -1,6 +1,6 @@
 import {UserRole} from "../../models/enums/userRole";
 import {Earning, IEarning, IEarningByDay} from "../../models/earning";
-import moment, { Moment } from "moment-timezone";
+import moment, {Moment} from "moment-timezone";
 
 export class EarningService {
 
@@ -15,7 +15,7 @@ export class EarningService {
             .exec();
     }
 
-    public async getEarningsByDay(userId: string, role: UserRole, date?: any): Promise<{earningsByDay: IEarningByDay[]}> {
+    public async getEarningsByDay(userId: string, role: UserRole, date?: any): Promise<IEarningByDay[]> {
         date = date || moment().toDate();
         const currentMoment = EarningService.createMoment();
         console.log(`$current time: ${currentMoment}`);
@@ -35,8 +35,7 @@ export class EarningService {
                 week: {$add: [{$week: {date: '$createdAt', timezone: 'Africa/Lagos'}}, 1]},
                 createdAt: '$createdAt'
             }).exec();
-        const earningsByDay = EarningService.groupEarningsByDay(groupedEarnings, currentMoment);
-        return {earningsByDay};
+        return EarningService.groupEarningsByDay(groupedEarnings, currentMoment);
     }
 
     private static groupEarningsByDay(earnings: IEarning[], currentMoment: Moment): IEarningByDay[] {
