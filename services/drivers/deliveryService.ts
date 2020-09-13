@@ -155,7 +155,7 @@ export class DeliveryService {
         const dropOffEndTime = moment().toDate();
         delivery = await Delivery.findOneAndUpdate({_id: id, 'stops._id': currentStop._id}, {
             state: DeliveryState.DROPPING_OFF,
-            'stops.$.dropOffStartTime': dropOffEndTime,
+            'stops.$.dropOffEndTime': dropOffEndTime,
             'stops.$.state': DeliveryState.AWAITING_SIGNATURE,
         }, {new: true})
             .populate(DeliveryService.getPopulateFields())

@@ -36,6 +36,16 @@ export class UsersService {
         return {user, transactions, totalDeliveries, walletBalance};
     }
 
+    public async searchUsers(query: string): Promise<IUser[]> {
+        return await User.find({
+            $or: [
+                {firstName: {$regex: query, $options: 'i'}},
+                {lastName: {$regex: query, $options: 'i'}},
+                {email: {$regex: query, $options: 'i'}},
+            ]
+        }).lean<IUser>().exec();
+    }
+
     public async messageUser(id: string, body: any): Promise<{ user: IUser, transactions: ITransaction[], totalDeliveries: number, walletBalance: number }> {
         console.log('Sending message to user: ', body)
         if (!body.message) throw createError('Message is required', 400);
