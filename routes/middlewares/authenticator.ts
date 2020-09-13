@@ -17,7 +17,7 @@ module.exports = async (req, res, next) => {
         if (!user) return next(createError('Authorization failed', 401));
         const authToken = await new AuthService().verifyToken(user._id, token, deviceId);
         if (!authToken) return next(createError('Authorization failed', 401));
-        user = await new AccountService().getAccount(user._id, false)
+        user = await new AccountService().getAccount(authToken.userId, false)
         if (!user) return next(createError('Authorization failed', 401));
         req.query.userId = authToken.userId;
         req.query.user = user;
