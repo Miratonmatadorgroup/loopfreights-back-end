@@ -8,7 +8,7 @@ export class AccountService {
     public async getAccount(userId: string, validate = true): Promise<IUser> {
         const user: IUser = await User.findById(userId).lean<IUser>().exec();
         if (!user && validate)
-            throw createError('User not found', 404);
+            throw createError('User not found', 401);
         return user;
     }
 
