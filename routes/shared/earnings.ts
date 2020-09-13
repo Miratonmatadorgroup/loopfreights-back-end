@@ -13,7 +13,15 @@ app.get('/', (req, res, next) => {
 });
 
 app.get('/by_day', (req, res, next) => {
-    new EarningService().getEarningsByDay(reqAsAny(req).query.userId, reqAsAny(req).role).then(result => {
+    new EarningService().getEarningsByDay(reqAsAny(req).query.userId, reqAsAny(req).query.role).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+});
+
+app.get('/summary', (req, res, next) => {
+    new EarningService().getEarningsSummary(reqAsAny(req).query.userId, reqAsAny(req).query.role).then(result => {
         sendResponse(res, 200, result);
     }).catch(err => {
         sendError(err, next);

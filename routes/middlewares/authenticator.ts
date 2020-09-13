@@ -2,6 +2,7 @@ import {createError, createStatusCodeError} from "../../utils/response";
 import {IUser, User} from "../../models/user";
 import {verify} from "jsonwebtoken";
 import {AuthService} from "../../services/auth/authService";
+import {AccountService} from "../../services/shared/accountService";
 
 module.exports = async (req, res, next) => {
     console.log('Authenticating...')
@@ -12,10 +13,12 @@ module.exports = async (req, res, next) => {
     req.query.deviceId = deviceId;
     req.query.token = token;
     try {
-        const user: IUser = await verify(token, process.env.JWT_SECRET) as IUser;
+        let user: IUser = await verify(token, process.env.JWT_SECRET) as IUser;
         if (!user) return next(createError('Authorization failed', 401));
         const authToken = await new AuthService().verifyToken(user._id, token, deviceId);
         if (!authToken) return next(createError('Authorization failed', 401));
+        user = await new AccountService().getAccount(user._id, false)
+        if (!user) return next(createError('Authorization failed', 401));
         req.query.userId = authToken.userId;
         req.query.user = user;
         next();

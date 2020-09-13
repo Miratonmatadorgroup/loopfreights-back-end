@@ -18,6 +18,11 @@ export interface IEarningByDay {
     total: number;
 }
 
+export interface IEarningSummary {
+    title: string;
+    amount: number;
+}
+
 const earningSchema = new Schema({
     userId: {type: Schema.Types.ObjectId, ref: 'user', required: true},
     role: {type: String, required: true},

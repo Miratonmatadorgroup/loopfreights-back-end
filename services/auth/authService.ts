@@ -22,7 +22,7 @@ export class AuthService {
         if (!await new PasswordsService().checkPassword(user._id, (body as any).password))
             throw createError('Incorrect password', 400);
         // const update = Object.assign(AuthService.assignProfile(role, body, user), {$addToSet: {roles: role}});
-        const update = AuthService.assignProfile(role, body, user);
+        const update = AuthService.assignProfile(role, body, user?.driverProfile?.platformFees > 0, user);
         user = await User.findByIdAndUpdate(user._id, update, getUpdateOptions()).lean<IUser>().exec();
         const token = await this.addAuthToken(user, role, deviceId);
         return {user, token};
@@ -52,7 +52,7 @@ export class AuthService {
         const userRole = (body as any).role || role
         body.roles = [userRole];
         // body.roles = [UserRole.DRIVER, UserRole.BASIC];
-        let user: IUser = new User(AuthService.assignProfile(role, body));
+        let user: IUser = new User(AuthService.assignProfile(role, body, (body as any).partner));
         await (user as any).validate();
         await new PasswordsService().addPassword(user._id, (body as any).password);
         const token = await this.addAuthToken((user as any).toObject(), role, deviceId);
@@ -162,7 +162,7 @@ export class AuthService {
         return sign(user, config.jwtSecret);
     }
 
-    private static assignProfile(role: UserRole, body: any, existingUser?: IUser): any {
+    private static assignProfile(role: UserRole, body: any, partner: boolean, existingUser?: IUser): any {
         if (role === UserRole.DRIVER) {
             return Object.assign(body, {
                 driverProfile: existingUser?.driverProfile || {
@@ -170,7 +170,8 @@ export class AuthService {
                     message: 'Document not uploaded',
                     enabled: false,
                     totalRating: 0,
-                    averageRating: 5
+                    averageRating: 5,
+                    platformFees: partner ? 30 : 0
                 }
             });
         } else {

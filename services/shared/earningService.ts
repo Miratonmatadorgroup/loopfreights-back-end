@@ -1,5 +1,5 @@
 import {UserRole} from "../../models/enums/userRole";
-import {Earning, IEarning, IEarningByDay} from "../../models/earning";
+import {Earning, IEarning, IEarningByDay, IEarningSummary} from "../../models/earning";
 import moment, {Moment} from "moment-timezone";
 
 export class EarningService {
@@ -35,7 +35,34 @@ export class EarningService {
                 week: {$add: [{$week: {date: '$createdAt', timezone: 'Africa/Lagos'}}, 1]},
                 createdAt: '$createdAt'
             }).exec();
+        console.log('Grouped earnings: ', groupedEarnings);
         return EarningService.groupEarningsByDay(groupedEarnings, currentMoment);
+    }
+
+    public async getEarningsSummary(userId: string, role: UserRole): Promise<IEarningSummary[]> {
+        const startOfWeekMoment = EarningService.createMoment().startOf('week').startOf('day');
+        const endOfWeekMoment = startOfWeekMoment.clone().endOf('week').endOf('day');
+        const earnings: IEarning[] = await Earning.find({$and: [{userId}, {role}, {createdAt: {$gte: startOfWeekMoment.toDate()}}, {createdAt: {$lte: endOfWeekMoment.toDate()}}]})
+            .lean<IEarning>()
+            .exec();
+        const totalAmount: number = earnings.reduce((total, currentValue) => {
+            total += currentValue.amount;
+            return total;
+        }, 0);
+        const totalFees: number = earnings.reduce((total, currentValue) => {
+            total += currentValue.fees;
+            return total;
+        }, 0);
+        const earningSummaries: IEarningSummary[] = [];
+        earningSummaries.push({
+            title: 'Earning',
+            amount: totalAmount
+        })
+        earningSummaries.push({
+            title: 'Fees',
+            amount: -totalFees
+        });
+        return earningSummaries;
     }
 
     private static groupEarningsByDay(earnings: IEarning[], currentMoment: Moment): IEarningByDay[] {
