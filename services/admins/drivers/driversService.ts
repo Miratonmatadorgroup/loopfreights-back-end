@@ -17,11 +17,20 @@ import {
     NotificationTag
 } from "../../../models/notification";
 import {Types} from "mongoose";
+import {DriverType} from "../../../models/enums/driverType";
 
 export class DriversService {
 
-    public async getDrivers(): Promise<IUser[]> {
-        return await User.find({roles: {$in: UserRole.DRIVER} as any})
+    public async getDrivers(type?: string): Promise<IUser[]> {
+        const conditions = {roles: {$in: UserRole.DRIVER}} as any;
+        console.log('Type: ', type);
+        if (type !== 'all') {
+            Object.assign(conditions, {
+                'driverProfile.type': type
+            });
+        }
+        console.log('Getting drivers. Conditions: ', conditions);
+        return await User.find(conditions)
             .sort({createdAt: 'desc'})
             .lean<IUser>().exec();
     }

@@ -1,10 +1,11 @@
 import {Router} from "express";
 import {DriversService} from "../../../services/admins/drivers/driversService";
 import {sendError, sendResponse} from "../../../utils/response";
+import {reqAsAny} from "../../../utils/utils";
 const app = Router();
 
 app.get('/', (req, res, next) => {
-    new DriversService().getDrivers().then(result => {
+    new DriversService().getDrivers(reqAsAny(req).query.type).then(result => {
         sendResponse(res, 200, result);
     }).catch(err => {
         sendError(err, next);

@@ -36,12 +36,19 @@ export class WalletService {
     public async takeValue(userId: string, role: UserRole, amount: number, description: string, dryRun = false): Promise<IWallet> {
         if (!amount) throw createError('Amount is required', 400);
         let wallet: IWallet = await WalletService.ensureHasWallet(userId);
-        if (wallet.balance < amount)
-            throw createError(`You don't have up to ${format(amount, {code: 'NGN'})} in your wallet`, 400, ErrorStatus.INSUFFICIENT_BALANCE_IN_WALLET);
+        const amountFromBonus = wallet.bonusBalance === 0 ? 0 : wallet.bonusBalance >= amount ? amount : wallet.bonusBalance;
+        const amountLeftAfterBonus = amount - amountFromBonus;
+        console.log(`>>>> Amount: ${amount}, from bonus: ${amountFromBonus}, from main: ${amountLeftAfterBonus}`)
+        if (wallet.balance < amountLeftAfterBonus)
+            throw createError(`You don't have up to ${format(amount, {code: 'NGN'})} in your main wallet or bonus wallet`, 400, ErrorStatus.INSUFFICIENT_BALANCE_IN_WALLET);
         if (!dryRun) {
-            wallet = await Wallet.findByIdAndUpdate(wallet._id, {$inc: {balance: -1}}).lean<IWallet>().exec();
-            await new TransactionService().addTransaction(TransactionType.DEBIT, PaymentMethodType.WALLET, role, userId,
-                wallet._id, amount, description);
+            wallet = await Wallet.findByIdAndUpdate(wallet._id, {$inc: {balance: -amountLeftAfterBonus, bonusBalance: -amountFromBonus}}).lean<IWallet>().exec();
+            if (amountLeftAfterBonus > 0)
+                await new TransactionService().addTransaction(TransactionType.DEBIT, PaymentMethodType.WALLET, role, userId,
+                    wallet._id, amountLeftAfterBonus, description);
+            if (amountFromBonus > 0)
+                await new TransactionService().addTransaction(TransactionType.DEBIT, PaymentMethodType.WALLET, role, userId,
+                    wallet._id, amountFromBonus, `Deduction from bonus wallet: ${description}`);
         }
         return await WalletService.ensureHasWallet(userId);
     }
@@ -57,8 +64,12 @@ export class WalletService {
         return await Wallet.findOneAndUpdate({userId}, {}, getUpdateOptions()).lean<IWallet>().exec();
     }
 
-    public async giveValue(userId: string, role: UserRole, walletId: string, amount: number): Promise<IWallet> {
+    public async giveValue(userId: string, role: UserRole, amount: number, description?: string): Promise<IWallet> {
+        description = description || `Wallet Funding`;
+        const walletId: string = (await WalletService.ensureHasWallet(userId))._id;
         await WalletService.ensureHasWallet(userId);
+        const wallet = await Wallet.findByIdAndUpdate(walletId, {$inc: {balance: amount}}).lean<IWallet>().exec();
+        await new TransactionService().addTransaction(TransactionType.CREDIT, PaymentMethodType.WALLET, role, userId, walletId, amount, description);
         new NotificationService().sendNotification({
             userId: userId,
             role: role,
@@ -70,8 +81,26 @@ export class WalletService {
             importance: NotificationImportance.HIGH,
             itemId: walletId
         }, NotificationStrategy.PUSH_ONLY, false);
-        await new TransactionService().addTransaction(TransactionType.CREDIT, PaymentMethodType.WALLET, role, userId, walletId, amount, `Wallet Funding`);
-        return await Wallet.findByIdAndUpdate(walletId, {$inc: {balance: amount}}).lean<IWallet>().exec();
+        return wallet;
+    }
+
+    public async giveBonusValue(userId: string, role: UserRole, amount: number, description?: string): Promise<IWallet> {
+        description = description || 'Bonus wallet funding';
+        const walletId: string = (await WalletService.ensureHasWallet(userId))._id;
+        const wallet = await Wallet.findByIdAndUpdate(walletId, {$inc: {bonusBalance: amount}}).lean<IWallet>().exec();
+        await new TransactionService().addTransaction(TransactionType.CREDIT, PaymentMethodType.WALLET, role, userId, walletId, amount, description);
+        new NotificationService().sendNotification({
+            userId: userId,
+            role: role,
+            ticker: 'Bonus wallet funded',
+            title: 'Bonus wallet funded',
+            content: `Your bonus wallet has been funded with ${format(amount, {code: 'NGN'})}: ${description}`,
+            tag: NotificationTag.WALLET_FUNDING,
+            group: NotificationGroup.WALLETS,
+            importance: NotificationImportance.HIGH,
+            itemId: walletId
+        }, NotificationStrategy.PUSH_ONLY, true);
+        return wallet;
     }
 
 }

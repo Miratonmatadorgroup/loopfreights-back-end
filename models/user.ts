@@ -1,6 +1,7 @@
 import {UserRole} from "./enums/userRole";
 import {model, Model, Schema, Types} from "mongoose";
 import {IBaseDocument} from "./interfaces/baseInterface";
+import {DriverType} from "./enums/driverType";
 
 export interface IUserProfile extends IBaseDocument {
     enabled: boolean;
@@ -10,6 +11,7 @@ export interface IUserProfile extends IBaseDocument {
     profileImage: string;
     profileImageThumbnail: string;
     platformFees: number;
+    type: DriverType;
 }
 export interface IUser extends IBaseDocument {
     firstName: string;
@@ -37,7 +39,8 @@ const userSchema = new Schema({
         averageRating: {type: Number, default: 5},
         profileImage: {type: String, required: false},
         profileImageThumbnail: {type: String, required: false},
-        platformFees: {type: Number, default: 30}
+        platformFees: {type: Number, default: 30},
+        type: {type: String, required: true}
     },
     userProfile: {
         _id: {type: Schema.Types.ObjectId, default: Types.ObjectId()},

@@ -26,6 +26,20 @@ export class UsersService {
             .exec();
     }
 
+    public async getUsersByRole(role: UserRole): Promise<IUser[]> {
+        return await User.find({roles: {$in: role} as any})
+            .lean<IUser>()
+            .sort({createdAt: 'desc'})
+            .exec();
+    }
+
+    public async getUsersInIds(ids: string[]): Promise<IUser[]> {
+        return await User.find({_id: {$in: ids} as any})
+            .lean<IUser>()
+            .sort({createdAt: 'desc'})
+            .exec();
+    }
+
     public async getUser(id: string): Promise<{ user: IUser, transactions: ITransaction[], totalDeliveries: number, walletBalance: number }> {
         const user = await User.findById(id)
             .lean<IUser>()
@@ -36,8 +50,9 @@ export class UsersService {
         return {user, transactions, totalDeliveries, walletBalance};
     }
 
-    public async searchUsers(query: string): Promise<IUser[]> {
+    public async searchUsers(query: string, role: UserRole): Promise<IUser[]> {
         return await User.find({
+            roles: {$in: role} as any,
             $or: [
                 {firstName: {$regex: query, $options: 'i'}},
                 {lastName: {$regex: query, $options: 'i'}},

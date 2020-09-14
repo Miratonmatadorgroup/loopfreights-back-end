@@ -152,7 +152,7 @@ export class PaystackService {
             }
             switch (transactionReference.reason) {
                 case TransactionReason.WALLET_FUNDING:
-                    await new WalletService().giveValue(transactionReference.userId, transactionReference.role, transactionReference.itemId, amount);
+                    await new WalletService().giveValue(transactionReference.userId, transactionReference.role, amount);
                     break;
             }
         }

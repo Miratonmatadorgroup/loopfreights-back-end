@@ -86,7 +86,7 @@ export class DeliveryService {
         let delivery = new Delivery(body);
         await delivery.validate();
         if (billing.paymentMethod.type === PaymentMethodType.WALLET) {
-            await new WalletService().takeValue(userId, role, billing.totalFare, `Payment for delivery '${delivery._id}'`, true);
+            await new WalletService().takeValue(userId, role, billing.totalFare, `Payment for delivery '${delivery.deliveryId}'`, false);
         }
         delivery = await new Delivery(body).save();
         delivery = await this.getDeliveryById(delivery._id);

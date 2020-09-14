@@ -13,7 +13,7 @@ app.get('/', (req, res, next) => {
 })
 
 app.get('/search', (req, res, next) => {
-    new UsersService().searchUsers(reqAsAny(req).query.query).then(result => {
+    new UsersService().searchUsers(reqAsAny(req).query.query, reqAsAny(req).query.role).then(result => {
         sendResponse(res, 200, result);
     }).catch(err => {
         sendError(err, next);

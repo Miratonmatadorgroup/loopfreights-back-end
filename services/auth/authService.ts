@@ -3,13 +3,14 @@ import {createError} from "../../utils/response";
 import {PasswordsService} from "../shared/passwordsService";
 import {UserRole} from "../../models/enums/userRole";
 import {AuthToken, IAuthToken} from "../../models/authToken";
-import {decode, sign, verify} from "jsonwebtoken";
+import {sign, verify} from "jsonwebtoken";
 import {config} from "../../config/config";
 import {EmailVerificationService} from "./emailVerificationService";
 import {AuthVerificationReason} from "../../models/enums/authVerificationReason";
 import {IEmailVerification} from "../../models/emailVerification";
 import {Types} from "mongoose";
 import {getUpdateOptions} from "../../utils/utils";
+import {DriverType} from "../../models/enums/driverType";
 
 export class AuthService {
 
@@ -171,7 +172,8 @@ export class AuthService {
                     enabled: false,
                     totalRating: 0,
                     averageRating: 5,
-                    platformFees: partner ? 30 : 0
+                    platformFees: partner ? 30 : 0,
+                    type: partner ? DriverType.EXTERNAL : DriverType.INTERNAL
                 }
             });
         } else {
