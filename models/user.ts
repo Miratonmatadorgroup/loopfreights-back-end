@@ -10,7 +10,6 @@ export interface IUserProfile extends IBaseDocument {
     averageRating: number;
     profileImage: string;
     profileImageThumbnail: string;
-    platformFees: number;
     type: DriverType;
 }
 export interface IUser extends IBaseDocument {
@@ -39,7 +38,7 @@ const userSchema = new Schema({
         averageRating: {type: Number, default: 5},
         profileImage: {type: String, required: false},
         profileImageThumbnail: {type: String, required: false},
-        platformFees: {type: Number, default: 30},
+        platformFees: {type: Number},
         type: {type: String, required: true}
     },
     userProfile: {

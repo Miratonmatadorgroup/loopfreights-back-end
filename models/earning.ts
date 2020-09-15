@@ -8,6 +8,7 @@ export interface IEarning extends IBaseDocument {
     amount: number;
     fees: number;
     amountMinusFees: number;
+    disbursed: boolean;
     // For mapping by day
     day?: number;
 }
@@ -28,7 +29,8 @@ const earningSchema = new Schema({
     role: {type: String, required: true},
     amount: {type: Number, required: true},
     fees: {type: Number, default: 0},
-    amountMinusFees: {type: Number, required: true}
+    amountMinusFees: {type: Number, required: true},
+    disbursed: {type: Boolean, default: false}
 }, {timestamps: true});
 
 export const Earning: Model<IEarning> = model<IEarning>('earning', earningSchema);

@@ -18,6 +18,9 @@ import {
 } from "../../../models/notification";
 import {Types} from "mongoose";
 import {DriverType} from "../../../models/enums/driverType";
+import {EarningService} from "../../shared/earningService";
+import {IEarning} from "../../../models/earning";
+import {IWallet} from "../../../models/wallet";
 
 export class DriversService {
 
@@ -35,7 +38,7 @@ export class DriversService {
             .lean<IUser>().exec();
     }
 
-    public async getDriver(id: string): Promise<{ user: IUser, documents: IDriverDocument[], totalDeliveries: number, walletBalance: number }> {
+    public async getDriver(id: string): Promise<IDriverDetails> {
         const user = await User.findById(id)
             .lean<IUser>()
             .exec();
@@ -45,11 +48,27 @@ export class DriversService {
             return Object.assign(document, uploadedDocument);
         });
         const totalDeliveries: number =  await Delivery.countDocuments({'driverLocation.userId' : id, state: DeliveryState.COMPLETE}).exec();
-        const walletBalance = (await new WalletService().getWallet(id)).balance
-        return {user, documents, totalDeliveries, walletBalance};
+        const wallet: IWallet = (await new WalletService().getWallet(id));
+        const walletBalance = wallet.balance;
+        const bonusWalletBalance = wallet.bonusBalance;
+        const driverEarnings: IEarning[] = await new EarningService().getEarnings(id, UserRole.DRIVER);
+        const totalEarnings: number = driverEarnings.reduce((total, currentValue) => {
+            total += currentValue.amount
+            return total;
+        }, 0);
+        const unDisbursedEarnings: IEarning[] = driverEarnings.filter(earning => !earning.disbursed)
+        const totalUnDisbursedEarnings: number = unDisbursedEarnings.reduce((total, currentValue) => {
+                total += currentValue.amount
+                return total;
+            }, 0);
+        const totalUnDisbursedEarningFees: number = -Math.abs(unDisbursedEarnings.reduce((total, currentValue) => {
+            total += currentValue.fees
+            return total;
+        }, 0));
+        return {user, documents, totalDeliveries, walletBalance, bonusWalletBalance, totalEarnings, totalUnDisbursedEarnings, totalUnDisbursedEarningFees};
     }
 
-    public async disableDriver(id: string, body: any): Promise<{ user: IUser, documents: IDriverDocument[], totalDeliveries: number, walletBalance: number }> {
+    public async disableDriver(id: string, body: any): Promise<IDriverDetails> {
         const reason = body.reason
         if (!reason) throw createError('Reason is required', 400);
         const user: IUser = await User.findByIdAndUpdate(id, {
@@ -92,7 +111,7 @@ export class DriversService {
         return await this.getDriver(id);
     }
 
-    public async enableDriver(id: string): Promise<{ user: IUser, documents: IDriverDocument[], totalDeliveries: number, walletBalance: number }> {
+    public async enableDriver(id: string): Promise<IDriverDetails> {
         const user: IUser = await User.findByIdAndUpdate(id, {
             'driverProfile.enabled': true,
         }, {new: true}).lean<IUser>().exec();
@@ -127,7 +146,7 @@ export class DriversService {
         return await this.getDriver(id);
     }
 
-    public async messageDriver(id: string, body: any): Promise<{ user: IUser, documents: IDriverDocument[], totalDeliveries: number, walletBalance: number }> {
+    public async messageDriver(id: string, body: any): Promise<IDriverDetails> {
         console.log('Sending message to driver: ', body)
         if (!body.message) throw createError('Message is required', 400);
         const title = body.title || 'New message from us'
@@ -166,4 +185,20 @@ export class DriversService {
         }
         return await this.getDriver(id);
     }
+
+    public async disburseUnPaidEarnings(id: string): Promise<IDriverDetails> {
+        await new EarningService().disburseUnPaidEarnings(id);
+        return await this.getDriver(id);
+    }
+}
+
+export interface IDriverDetails {
+    user: IUser;
+    documents: IDriverDocument[]
+    totalDeliveries: number;
+    walletBalance: number;
+    bonusWalletBalance: number;
+    totalEarnings: number;
+    totalUnDisbursedEarnings: number;
+    totalUnDisbursedEarningFees: number;
 }

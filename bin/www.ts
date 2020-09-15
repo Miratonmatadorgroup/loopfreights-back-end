@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import {config} from "../config/config";
 import {NotificationService} from "../services/shared/notificationService";
+import {PlatformConfigurationService} from "../services/admins/platformConfigurationService";
 
 /**
  * Module dependencies.
@@ -100,6 +101,7 @@ const connectMongoose = () => {
   mongoose.connect(mongoUrl, options).then(async () => {
     console.log('Connected to mongo instance');
     server.listen(port);
+    PlatformConfigurationService.ensurePlatformConfigurations();
     NotificationService.beginCheckForInvalidTokens();
   }, err => {
     console.error('www error', err);

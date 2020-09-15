@@ -13,6 +13,7 @@ app.use('/users', require('./users'));
 app.use('/deliveries', require('./deliveries'));
 app.use('/zones', require('./zones'));
 app.use('/promotions', require('./promotions'));
+app.use('/platform_configurations', require('./platformConfigurations'));
 app.use('/parcel_categories', require('./parcelCategories'));
 
 module.exports = app;

@@ -44,4 +44,12 @@ app.post('/:id/message', (req, res, next) => {
     });
 })
 
+app.post('/:id/disburse_earnings', (req, res, next) => {
+    new DriversService().disburseUnPaidEarnings(req.params.id).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+})
+
 module.exports = app

@@ -5,7 +5,7 @@ import {EarningService} from "../../services/shared/earningService";
 const app = Router();
 
 app.get('/', (req, res, next) => {
-    new EarningService().getEarnings(reqAsAny(req).query.userId).then(result => {
+    new EarningService().getEarnings(reqAsAny(req).query.userId, reqAsAny(req).query.role).then(result => {
         sendResponse(res, 200, result);
     }).catch(err => {
         sendError(err, next);

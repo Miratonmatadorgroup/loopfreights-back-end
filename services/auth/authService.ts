@@ -10,7 +10,9 @@ import {AuthVerificationReason} from "../../models/enums/authVerificationReason"
 import {IEmailVerification} from "../../models/emailVerification";
 import {Types} from "mongoose";
 import {getUpdateOptions} from "../../utils/utils";
-import {DriverType} from "../../models/enums/driverType";
+import {DriverType, getSupportedDriverTypes} from "../../models/enums/driverType";
+import {IPlatformConfiguration} from "../../models/platformConfiguration";
+import {PlatformConfigurationService} from "../admins/platformConfigurationService";
 
 export class AuthService {
 
@@ -23,7 +25,7 @@ export class AuthService {
         if (!await new PasswordsService().checkPassword(user._id, (body as any).password))
             throw createError('Incorrect password', 400);
         // const update = Object.assign(AuthService.assignProfile(role, body, user), {$addToSet: {roles: role}});
-        const update = AuthService.assignProfile(role, body, user?.driverProfile?.platformFees > 0, user);
+        const update = await AuthService.assignProfile(role, body, user?.driverProfile?.type, user);
         user = await User.findByIdAndUpdate(user._id, update, getUpdateOptions()).lean<IUser>().exec();
         const token = await this.addAuthToken(user, role, deviceId);
         return {user, token};
@@ -51,9 +53,10 @@ export class AuthService {
             throw createError('Phone number already in use', 400);
         // TODO:: change
         const userRole = (body as any).role || role
+        const type: DriverType = (body as any).type;
         body.roles = [userRole];
         // body.roles = [UserRole.DRIVER, UserRole.BASIC];
-        let user: IUser = new User(AuthService.assignProfile(role, body, (body as any).partner));
+        let user: IUser = new User(await AuthService.assignProfile(role, body, type));
         await (user as any).validate();
         await new PasswordsService().addPassword(user._id, (body as any).password);
         const token = await this.addAuthToken((user as any).toObject(), role, deviceId);
@@ -163,8 +166,12 @@ export class AuthService {
         return sign(user, config.jwtSecret);
     }
 
-    private static assignProfile(role: UserRole, body: any, partner: boolean, existingUser?: IUser): any {
+    private static async assignProfile(role: UserRole, body: any, type: DriverType, existingUser?: IUser): Promise<any> {
+        const platformConfiguration: IPlatformConfiguration = await PlatformConfigurationService.getPlatformConfigurations();
         if (role === UserRole.DRIVER) {
+            if (!getSupportedDriverTypes().includes(type))
+                throw createError(`Unknown driver type: ${type}`, 400)
+            if (!platformConfiguration.allowNewDriverSignUp) throw createError('New driver sign up is temporarily suspended', 400);
             return Object.assign(body, {
                 driverProfile: existingUser?.driverProfile || {
                     _id: Types.ObjectId(),
@@ -172,11 +179,11 @@ export class AuthService {
                     enabled: false,
                     totalRating: 0,
                     averageRating: 5,
-                    platformFees: partner ? 30 : 0,
-                    type: partner ? DriverType.EXTERNAL : DriverType.INTERNAL
+                    type: type
                 }
             });
         } else {
+            if (!platformConfiguration.allowNewUserSignUp) throw createError('New user sign up is temporarily suspended', 400);
             return  Object.assign(body, {
                 userProfile: existingUser?.userProfile || {
                     _id: Types.ObjectId(),

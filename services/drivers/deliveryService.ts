@@ -240,7 +240,7 @@ export class DeliveryService {
                 `Thank you for your service`
             );
             // Add Driver Earnings
-            await new EarningService().addEarning(driver._id, UserRole.DRIVER, delivery.billing.totalFare, driver.driverProfile.platformFees);
+            await new EarningService().addEarning(driver._id, UserRole.DRIVER, driver.driverProfile.type, delivery.billing.totalFare);
         }
         if (receiver) {
             await UsersDeliveryService.sendNotificationUpdate(
