@@ -13,7 +13,7 @@ export class EarningService {
         const amountMinusFees = amount - fees;
         const earning = await new Earning({userId, role, amount, fees, amountMinusFees}).save();
         const platformConfiguration: IPlatformConfiguration = await PlatformConfigurationService.getPlatformConfigurations();
-        if (platformConfiguration.autoDisburseEarnings) await this.disburseUnPaidEarnings(userId);
+        if (platformConfiguration.autoDisburseEarnings && type === DriverType.EXTERNAL) await this.disburseUnPaidEarnings(userId);
         return earning;
     }
 
