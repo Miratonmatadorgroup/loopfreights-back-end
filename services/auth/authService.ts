@@ -171,7 +171,8 @@ export class AuthService {
         if (role === UserRole.DRIVER) {
             if (!getSupportedDriverTypes().includes(type))
                 throw createError(`Unknown driver type: ${type}`, 400)
-            if (!platformConfiguration.allowNewDriverSignUp) throw createError('New driver sign up is temporarily suspended', 400);
+            if (!platformConfiguration.allowNewDriverSignUp && !existingUser)
+                throw createError('New driver sign up is temporarily suspended', 400);
             return Object.assign(body, {
                 driverProfile: existingUser?.driverProfile || {
                     _id: Types.ObjectId(),
