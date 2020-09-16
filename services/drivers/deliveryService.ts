@@ -254,6 +254,15 @@ export class DeliveryService {
         return await this.getDeliveryById(id);
     }
 
+    public async rate(id: string, body: any): Promise<IDelivery> {
+        if (!body.rating) throw createError('Rating is required', 400);
+        const riderRating = body.rating;
+        const riderComment = body.comment;
+        const delivery: IDelivery = await Delivery.findByIdAndUpdate(id, {riderRating, riderComment}).exec();
+        UsersDeliveryService.assignAverageRating(delivery.sender as string)
+        return await this.getDeliveryById(id);
+    }
+
     private static async sendNotificationUpdate(deliveryId: string, ticker: string, title: string, content: string, group = NotificationGroup.DELIVERIES, tag = NotificationTag.DELIVERY_UPDATE): Promise<IDelivery> {
         const delivery: IDelivery = await Delivery.findByIdAndUpdate(deliveryId, {lastMessageToDriver: content})
             .populate(DeliveryService.getPopulateFields())
@@ -280,6 +289,15 @@ export class DeliveryService {
         if (!delivery && validate)
             throw createError('Delivery not found', 404);
         return delivery;
+    }
+
+    public async getPastDeliveries(userId: string): Promise<IDelivery[]> {
+        return await Delivery.find({
+            'driverLocation.userId': userId,
+            state: {$in: DeliveryService.getCompleteDeliveryStates()}
+        }).populate('sender driverLocation.userId stops.receiver')
+            .sort({createdAt: 'desc'})
+            .lean<IDelivery>().exec();
     }
 
     public static updateDeliveriesEta(driverLocation: IDriverLocation) {
@@ -451,6 +469,13 @@ export class DeliveryService {
 
     private static getPopulateFields(): string {
         return 'sender driverLocation.userId stops.receiver';
+    }
+
+    public static getCompleteDeliveryStates(): DeliveryState[] {
+        return [
+            DeliveryState.COMPLETE,
+            DeliveryState.CANCELLED
+        ];
     }
 
     public static getActiveDeliveryStates(): DeliveryState[] {

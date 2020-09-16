@@ -68,8 +68,24 @@ app.post('/confirm_delivery', (req, res, next) => {
     });
 });
 
+app.get('/history', (req, res, next) => {
+    new DeliveryService().getPastDeliveries(reqAsAny(req).query.userId).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+});
+
 app.get('/:id', (req, res, next) => {
     new DeliveryService().getDeliveryById(req.params.id).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+});
+
+app.post('/:id/rate', (req, res, next) => {
+    new DeliveryService().rate(req.params.id, req.body).then(result => {
         sendResponse(res, 200, result);
     }).catch(err => {
         sendError(err, next);

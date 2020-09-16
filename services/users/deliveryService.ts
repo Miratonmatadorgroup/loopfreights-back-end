@@ -205,6 +205,29 @@ export class DeliveryService {
         return delivery;
     }
 
+    public static assignAverageRating(userId: string) {
+        new Promise(async (accept, reject) => {
+            try {
+                console.log('Assigning average rating: ', userId);
+                const deliveries: IDelivery[] = await Delivery.find({sender: userId}).lean<IDelivery>().exec();
+                const totalDeliveries: number = deliveries.length
+                const totalRating: number = deliveries.reduce((total, currentValue) => {
+                    total += currentValue.userRating
+                    return total;
+                }, 0);
+                const average = totalRating / totalDeliveries;
+                await User.findByIdAndUpdate(userId, {
+                    'userProfile.averageRating': average,
+                    'userProfile.totalRating': totalRating,
+                }).exec();
+            } catch (e) {
+                reject(e);
+            }
+        }).catch(err => {
+            console.error('Error applying average rating');
+        })
+    }
+
     private static getCurrentStop(delivery: IDelivery): IStop | null {
         const stops: IStop[] = delivery.stops;
         const currentStop = stops.filter(stop => stop.state === DeliveryState.DROPPING_OFF)[0];

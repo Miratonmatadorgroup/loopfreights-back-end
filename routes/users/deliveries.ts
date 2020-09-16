@@ -13,16 +13,16 @@ app.get('/', (req, res, next) => {
     });
 });
 
-app.get('/history', (req, res, next) => {
-    new DeliveryService().getPastDeliveries(reqAsAny(req).query.userId).then(result => {
+app.post('/',  upload.array('files', 12), (req, res, next) => {
+    new DeliveryService().requestDelivery(reqAsAny(req).query.userId, reqAsAny(req).query.role, (req as any).files, req.body).then(result => {
         sendResponse(res, 200, result);
     }).catch(err => {
         sendError(err, next);
     });
 });
 
-app.post('/',  upload.array('files', 12), (req, res, next) => {
-    new DeliveryService().requestDelivery(reqAsAny(req).query.userId, reqAsAny(req).query.role, (req as any).files, req.body).then(result => {
+app.get('/history', (req, res, next) => {
+    new DeliveryService().getPastDeliveries(reqAsAny(req).query.userId).then(result => {
         sendResponse(res, 200, result);
     }).catch(err => {
         sendError(err, next);
