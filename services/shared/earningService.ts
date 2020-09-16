@@ -67,7 +67,7 @@ export class EarningService {
     public async getEarningsSummary(userId: string, role: UserRole): Promise<IEarningSummary[]> {
         const startOfWeekMoment = EarningService.createMoment().startOf('week').startOf('day');
         const endOfWeekMoment = startOfWeekMoment.clone().endOf('week').endOf('day');
-        const earnings: IEarning[] = await Earning.find({$and: [{userId}, {role}, {createdAt: {$gte: startOfWeekMoment.toDate()}}, {createdAt: {$lte: endOfWeekMoment.toDate()}}]})
+        const earnings: IEarning[] = await Earning.find({$and: [{userId}, {role}, {disbursed: false}, {createdAt: {$gte: startOfWeekMoment.toDate()}}, {createdAt: {$lte: endOfWeekMoment.toDate()}}]})
             .lean<IEarning>()
             .exec();
         const totalAmount: number = earnings.reduce((total, currentValue) => {
