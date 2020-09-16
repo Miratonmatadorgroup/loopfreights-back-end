@@ -39,7 +39,7 @@ const userSchema = new Schema({
         profileImage: {type: String, required: false},
         profileImageThumbnail: {type: String, required: false},
         platformFees: {type: Number},
-        type: {type: String, required: true}
+        type: {type: String, default: DriverType.INTERNAL}
     },
     userProfile: {
         _id: {type: Schema.Types.ObjectId, default: Types.ObjectId()},
