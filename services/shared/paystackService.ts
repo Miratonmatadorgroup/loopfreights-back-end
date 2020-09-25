@@ -143,8 +143,10 @@ export class PaystackService {
         const data = response.data;
         const amount = response.data.amount / 100;
         console.log('Verifying transaction: ', response);
-        const transactionReference = await new TransactionReferenceService().getTransactionReference(data.reference);
+        const transactionReferenceService = new TransactionReferenceService();
+        const transactionReference = await transactionReferenceService.getTransactionReference(data.reference);
         if (data.status === PaystackChargeStatus.SUCCESS) {
+            if (transactionReference.used) return console.warn(`Transaction reference '${transactionReference.reference}' already used`);
             if (transactionReference.saveCard) {
                 const authorization = data.authorization;
                 await new CardService().saveCard(transactionReference.userId, transactionReference.role, authorization.bin, authorization.last4, authorization.brand,
@@ -155,6 +157,7 @@ export class PaystackService {
                     await new WalletService().giveValue(transactionReference.userId, transactionReference.role, amount);
                     break;
             }
+            await transactionReferenceService.markReferenceUsed(transactionReference.reference, true);
         }
     }
 

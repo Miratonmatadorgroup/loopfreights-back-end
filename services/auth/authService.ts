@@ -89,7 +89,10 @@ export class AuthService {
                 await emailVerificationService.removeEmailVerification(emailVerification._id);
                 break;
             case AuthVerificationReason.USER_PASSWORD_RESET:
+                await emailVerificationService.removeEmailVerification(emailVerification._id);
                 break;
+            default:
+                throw createError(`Unsupported email verification reason '${reason}'`, 400);
         }
         return {user, verificationCode};
     }

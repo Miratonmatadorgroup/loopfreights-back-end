@@ -70,12 +70,12 @@ export class DeliveryService {
     public async requestDelivery(userId: string, role: UserRole, files: {originalname: string, filename: string, imageUri?: string}[], body: IDelivery): Promise<IDelivery> {
         console.log('Files:', files);
         console.log('Body: ', body);
-        for (const file of files) {
-            file.imageUri = await new UploadService().uploadFile(file, ImageContainer.IMAGES);
-        }
         body.pickUpLocation = JSON.parse(body.pickUpLocation as any);
         body.stops = Array.isArray(body.stops) ? body.stops.map(stop => JSON.parse(stop as any)) : [JSON.parse(body.stops)];
         body = await DeliveryService.validateDelivery(body);
+        for (const file of files) {
+            file.imageUri = await new UploadService().uploadFile(file, ImageContainer.IMAGES);
+        }
         for (const stop of body.stops) {
             stop.parcel.contentUri = (files.filter(file => file.originalname.includes(stop.identifier))[0]).imageUri;
         }
@@ -148,12 +148,14 @@ export class DeliveryService {
     }
 
     public static async validateDelivery(delivery: IDelivery): Promise<IDelivery> {
-        console.log('Validating: ', JSON.stringify(delivery));
+        console.log('Validating: ', delivery);
         if (!delivery.pickUpLocation || !delivery.pickUpLocation.latitude || !delivery.pickUpLocation.longitude)
             throw createError('Pick up location is required', 400);
         if (!delivery.stops || delivery.stops.length === 0) throw createError('At least one stop is required', 400);
         delivery.stops = await Promise.all(delivery.stops.map(async (stop, index) => {
+            console.log('Checking stop: ', stop);
             const stopIndex = index + 1;
+            if (!stop.identifier) throw createError('Stop identifier is required', 400);
             if (!stop.rawReceiver?.name) throw createError(`Receiver name has not been set at stop ${stopIndex}`, 400);
             if (!stop.rawReceiver?.phone) throw createError(`Receiver phone has not been set at stop ${stopIndex}`, 400);
             if (!stop.location || !stop.location.latitude || !stop.location.longitude)

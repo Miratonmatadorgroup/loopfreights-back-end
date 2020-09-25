@@ -18,12 +18,21 @@ export class EmailVerificationService {
                 code, expiresIn
             }, getUpdateOptions()).lean<IEmailVerification>().exec();
         }
+        let templateId: EmailTemplateId;
+        switch (reason) {
+            case AuthVerificationReason.USER_SIGN_UP:
+                templateId = EmailTemplateId.EMAIL_VERIFICATION
+                break;
+            case AuthVerificationReason.USER_PASSWORD_RESET:
+                templateId = EmailTemplateId.PASSWORD_RESET
+                break;
+        }
         new EmailService().sendEmail(
             email,
             'Email verification',
-            `Please use code '${emailVerification.code}' to verify your account on MMG`,
+            `Please use code '${emailVerification.code}' to verify your account on LoopFreights`,
             {
-                templateId: EmailTemplateId.EMAIL_VERIFICATION,
+                templateId: templateId,
                 data: [
                     {
                         key: 'verification_code',
