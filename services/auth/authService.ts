@@ -90,7 +90,6 @@ export class AuthService {
                 break;
             case AuthVerificationReason.USER_PASSWORD_RESET:
                 user = null
-                await emailVerificationService.getEmailVerification(emailVerification._id, reason, verificationCode);
                 break;
             default:
                 throw createError(`Unsupported email verification reason '${reason}'`, 400);
