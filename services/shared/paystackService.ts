@@ -1,5 +1,9 @@
 import {ICard} from "../../models/card";
-import {IPaystackChargeResponse} from "../../models/interfaces/paystackChargeResponse";
+import {
+    IPaystackBanksResponse,
+    IPaystackChargeResponse,
+    IPaystackResolveBankResponse
+} from "../../models/interfaces/paystackChargeResponse";
 import {PaystackRoute} from "../../models/enums/paystackRoute";
 import {config} from "../../config/config";
 import {createError} from "../../utils/response";
@@ -12,6 +16,7 @@ import {PaystackChargeStatus} from "../../models/enums/paystackData";
 import {WalletService} from "./walletService";
 import {UserRole} from "../../models/enums/userRole";
 import {CardService} from "./cardService";
+import {IBank} from "../../models/interfaces/bank";
 
 export class PaystackService {
 
@@ -136,6 +141,29 @@ export class PaystackService {
         });
         await this.checkTransactionApproved(result);
         return result;
+    }
+
+    public async listBanks(): Promise<IPaystackBanksResponse> {
+        return await request(PaystackService.createUrl(PaystackRoute.LIST_BANKS), {
+            method: 'GET',
+            json: true,
+            headers: PaystackService.getHeaders()
+        }).catch(err => {
+            throw PaystackService.handleError(err);
+        });
+    }
+
+    public async resolveAccountNumber(accountNumber: string, bankCode: string): Promise<IPaystackResolveBankResponse> {
+        const resolveAccountUrl = PaystackService.createUrl(PaystackRoute.RESOLVE_ACCOUNT_NUMBER);
+        const url = `${resolveAccountUrl}?account_number=${accountNumber}&&bank_code=${bankCode}`;
+        console.log(`Resolve account url: ${url}`)
+        return await request(url, {
+            method: 'GET',
+            json: true,
+            headers: PaystackService.getHeaders()
+        }).catch(err => {
+            throw PaystackService.handleError(err);
+        });
     }
 
     // noinspection JSMethodCanBeStatic

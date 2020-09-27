@@ -1,4 +1,5 @@
 import {PaystackChargeStatus} from "../enums/paystackData";
+import {IBank} from "./bank";
 
 export interface IPaystackResponse {
     status: boolean;
@@ -30,4 +31,15 @@ export interface IPaystackChargeResponse extends IPaystackResponse {
             reusable: boolean;
         }
     };
+}
+
+export interface IPaystackResolveBankResponse extends IPaystackResponse {
+    data: {
+        account_number: string;
+        account_name: string;
+    }
+}
+
+export interface IPaystackBanksResponse extends IPaystackResponse {
+    data: IBank[];
 }

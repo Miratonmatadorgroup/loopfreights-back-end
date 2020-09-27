@@ -120,6 +120,7 @@ export class AuthService {
         const user: IUser = await User.findOne({email}).lean<IUser>().exec();
         if (!user) throw createError('Account not found', 400);
         await new PasswordsService().addPassword(user._id, body.password);
+        await emailVerificationService.removeEmailVerification(emailVerification._id);
         return await this.login({
             email: email,
             password: body.password

@@ -2,6 +2,7 @@ import {UserRole} from "./enums/userRole";
 import {model, Model, Schema, Types} from "mongoose";
 import {IBaseDocument} from "./interfaces/baseInterface";
 import {DriverType} from "./enums/driverType";
+import {IPaymentAccount} from "./interfaces/paymentAccount";
 
 export interface IUserProfile extends IBaseDocument {
     enabled: boolean;
@@ -11,6 +12,7 @@ export interface IUserProfile extends IBaseDocument {
     profileImage: string;
     profileImageThumbnail: string;
     type: DriverType;
+    paymentAccount?: IPaymentAccount;
 }
 export interface IUser extends IBaseDocument {
     firstName: string;
@@ -39,7 +41,13 @@ const userSchema = new Schema({
         profileImage: {type: String, required: false},
         profileImageThumbnail: {type: String, required: false},
         platformFees: {type: Number},
-        type: {type: String, default: DriverType.INTERNAL}
+        type: {type: String, default: DriverType.INTERNAL},
+        paymentAccount: {
+            accountName: {type: String},
+            accountNumber: {type: String},
+            bank: {type: String},
+            bankCode: {type: String}
+        }
     },
     userProfile: {
         _id: {type: Schema.Types.ObjectId, default: Types.ObjectId()},

@@ -11,5 +11,6 @@ app.use('/transactions', require('./transactions'));
 app.use('/zones', require('./zones'));
 app.use('/parcel_categories', require('./parcelCategories'));
 app.use('/earnings', require('./earnings'));
+app.use('/banks', require('./banks'));
 
 module.exports = app;

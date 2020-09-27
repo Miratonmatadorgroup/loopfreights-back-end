@@ -5,5 +5,7 @@ export enum PaystackRoute {
     SUBMIT_OTP = 'SUBMIT_OTP',
     SUBMIT_PHONE = 'charge/submit_phone',
     SUBMIT_BIRTHDAY = 'charge/submit_birthday',
-    CHARGE_AUTHORIZATION = 'transaction/charge_authorization'
+    CHARGE_AUTHORIZATION = 'transaction/charge_authorization',
+    LIST_BANKS = 'bank',
+    RESOLVE_ACCOUNT_NUMBER = 'bank/resolve'
 }
