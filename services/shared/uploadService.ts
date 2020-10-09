@@ -14,8 +14,8 @@ const s3 = new S3({credentials:  {
     }});
 
 export enum ImageContainer {
-    IMAGES = 'flux-images',
-    THUMBNAILS = 'flux-image-thumbnails'
+    IMAGES = 'loops-images',
+    THUMBNAILS = 'loops-image-thumbnails'
 }
 export class UploadService {
 

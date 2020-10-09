@@ -2,7 +2,7 @@ import {Router} from "express";
 import {DriverDocumentService} from "../../services/drivers/driverDocumentService";
 import {reqAsAny} from "../../utils/utils";
 import {sendError, sendResponse} from "../../utils/response";
-import {upload} from "../shared/uploadService";
+import {upload} from "../../services/shared/uploadService";
 const app = Router();
 
 app.get('/', (req, res, next) => {

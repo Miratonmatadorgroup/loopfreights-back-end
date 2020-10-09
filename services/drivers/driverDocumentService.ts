@@ -2,7 +2,7 @@ import {DriverDocument, IDriverDocument} from "../../models/document";
 import {DriverDocumentType} from "../../models/enums/driverDocumentType";
 import {getUpdateOptions} from "../../utils/utils";
 import {createError} from "../../utils/response";
-import {ImageContainer, UploadService} from "../../routes/shared/uploadService";
+import {ImageContainer, UploadService} from "../shared/uploadService";
 import {User} from "../../models/user";
 import {SocketServer} from "../../libs/socketServer";
 import {UserRole} from "../../models/enums/userRole";

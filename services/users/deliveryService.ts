@@ -20,7 +20,7 @@ import {PaymentMethodType} from "../../models/enums/paymentMethod";
 import {WalletService} from "../shared/walletService";
 import {EmailTemplateId} from "../../models/interfaces/emailTemplatePayload";
 import {format} from "currency-formatter";
-import {ImageContainer, UploadService} from "../../routes/shared/uploadService";
+import {ImageContainer, UploadService} from "../shared/uploadService";
 
 export class DeliveryService {
 
