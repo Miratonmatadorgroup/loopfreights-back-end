@@ -26,6 +26,13 @@ export class UsersService {
             .exec();
     }
 
+    public async getUsersWithProjections(): Promise<IUser[]> {
+        return await User.find({roles: {$in: UserRole.BASIC} as any}, {firstName: 1, lastName: 1, email: 1, phone: 1})
+            .lean<IUser>()
+            .sort({createdAt: 'desc'})
+            .exec();
+    }
+
     public async getUsersByRole(role: UserRole): Promise<IUser[]> {
         return await User.find({roles: {$in: role} as any})
             .lean<IUser>()

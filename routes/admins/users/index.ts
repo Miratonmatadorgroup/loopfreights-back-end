@@ -12,6 +12,14 @@ app.get('/', (req, res, next) => {
     });
 })
 
+app.get('/with_projections', (req, res, next) => {
+    new UsersService().getUsersWithProjections().then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+})
+
 app.get('/search', (req, res, next) => {
     new UsersService().searchUsers(reqAsAny(req).query.query, reqAsAny(req).query.role).then(result => {
         sendResponse(res, 200, result);
