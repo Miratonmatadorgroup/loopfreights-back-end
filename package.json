@@ -7,6 +7,7 @@
   },
   "scripts": {
     "start": "node bin/www",
+    "prestart": "tsc",
     "build": "tsc"
   },
   "dependencies": {
