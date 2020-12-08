@@ -8,5 +8,6 @@ export const config = {
     googleApiKey: process.env.GOOGLE_API_KEY,
     awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID,
     awsAccessKey: process.env.AWS_ACCESS_KEY,
-    loopsAdminUrl: process.env.LOOPS_ADMIN_URL
+    loopsAdminUrl: process.env.LOOPS_ADMIN_URL,
+    textNgKey: process.env.TEXT_NG_KEY
 };

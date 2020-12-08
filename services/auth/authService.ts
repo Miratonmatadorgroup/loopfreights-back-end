@@ -61,7 +61,7 @@ export class AuthService {
         await new PasswordsService().addPassword(user._id, (body as any).password);
         const token = await this.addAuthToken((user as any).toObject(), role, deviceId);
         user = await (user as any).save();
-        await new EmailVerificationService().requestEmailVerification(user.email, AuthVerificationReason.USER_SIGN_UP);
+        await new EmailVerificationService().requestEmailVerification(user.email, AuthVerificationReason.USER_SIGN_UP, body.phone);
         return {user, token};
     }
 

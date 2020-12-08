@@ -6,7 +6,8 @@
     "node": "10.19.0"
   },
   "scripts": {
-    "start": "tsc && node bin/www"
+    "start": "node bin/www",
+    "build": "tsc"
   },
   "dependencies": {
     "@sendgrid/mail": "^7.2.4",

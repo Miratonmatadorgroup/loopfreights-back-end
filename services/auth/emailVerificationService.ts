@@ -6,10 +6,11 @@ import {getUpdateOptions} from "../../utils/utils";
 import {createError} from "../../utils/response";
 import {EmailService} from "../shared/emailService";
 import {EmailTemplateId} from "../../models/interfaces/emailTemplatePayload";
+import {SmsService} from "../shared/smsService";
 
 export class EmailVerificationService {
 
-    public async requestEmailVerification(email: string, reason: AuthVerificationReason): Promise<IEmailVerification> {
+    public async requestEmailVerification(email: string, reason: AuthVerificationReason, phone: string = null): Promise<IEmailVerification> {
         let emailVerification: IEmailVerification = await this.getPreviousVerificationIfValid(email, reason);
         if (!emailVerification) {
             const expiresIn: any = moment().add(60, 'minutes');
@@ -27,10 +28,11 @@ export class EmailVerificationService {
                 templateId = EmailTemplateId.PASSWORD_RESET
                 break;
         }
+        const text = `Please use code '${emailVerification.code}' to verify your account on LoopFreights`
         new EmailService().sendEmail(
             email,
             'Email verification',
-            `Please use code '${emailVerification.code}' to verify your account on LoopFreights`,
+            text,
             {
                 templateId: templateId,
                 data: [
@@ -41,6 +43,9 @@ export class EmailVerificationService {
                 ]
             }
         );
+        if (phone != null) {
+            new SmsService().sendSms(phone, text);
+        }
         return emailVerification;
     }
 
