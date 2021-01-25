@@ -184,6 +184,8 @@ export class PaystackService {
                 case TransactionReason.WALLET_FUNDING:
                     await new WalletService().giveValue(transactionReference.userId, transactionReference.role, amount);
                     break;
+                default:
+                    console.log(`Unsupported transaction reason: '${transactionReference.reason}'`)
             }
             await transactionReferenceService.markReferenceUsed(transactionReference.reference, true);
         }
