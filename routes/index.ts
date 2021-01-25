@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express.Router();
 
+app.use('/external', require('./external'))
+
 app.use(require('./middlewares/routeGuard'));
 
 app.use('/auth', require('./shared/auth'));
