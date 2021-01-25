@@ -57,7 +57,7 @@ export class GeolocationService {
         return result.results;
     }
 
-    public async getDistanceMatrix(startLatitude: number, startLongitude: number, destinations: Array<{latitude: number, longitude: number}>)
+    public async getDistanceMatrix(startLatitude: number, startLongitude: number, destinations: {latitude: number, longitude: number}[])
         : Promise<IPlaceDistanceMatrixRow[]> {
         const destinationStringList: string[] = destinations.map(destination => {
             return `${destination.latitude},${destination.longitude}`;
@@ -70,7 +70,7 @@ export class GeolocationService {
     }
 
     public async getDirections(startLatitude: number, startLongitude: number, endLatitude: number, endLongitude: number,
-                               wayPoints?: Array<{latitude: number, longitude: number}>): Promise<IPlaceRoute[]> {
+                               wayPoints?: {latitude: number, longitude: number}[]): Promise<IPlaceRoute[]> {
         let path = `?origin=${startLatitude},${startLongitude}&destination=${endLatitude},${endLongitude}&mode=driving&unit=metric`;
         if (wayPoints && wayPoints.length > 0) {
             path = path.concat('&waypoints=');
@@ -104,7 +104,7 @@ export class GeolocationService {
             json: true
         });
         if (result.status !== 'OK')
-            console.warn(`Google result status not OK. Status is ${result.status}`);
+            console.warn(`Google result status not OK. Status is ${result.status}:`, result);
         return result as T;
     }
 }
