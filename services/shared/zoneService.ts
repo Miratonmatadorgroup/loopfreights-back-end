@@ -20,6 +20,7 @@ export class ZoneService {
     public async getZoneByPlace(place: IPlace): Promise<IZone> {
         if (!place.address_components) throw createError('Place address component is required', 400);
         if (!place.place_id) throw createError('Place id is required', 400);
+        console.log('Getting zone by place: ', place);
         const lgaComponents = place.address_components?.filter(component => component.types.includes('administrative_area_level_2')) || []
         const stateComponents = place.address_components?.filter(component => component.types.includes('administrative_area_level_1')) || []
         const lga: string = (lgaComponents[0]?.long_name?.toLowerCase() || '').toLowerCase()
