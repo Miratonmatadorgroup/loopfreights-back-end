@@ -3,8 +3,8 @@ export enum ZoneClass {
     A = 'A',
     B = 'B',
     C = 'C',
-    D = 'E',
-    F = 'F'
+    D = 'D',
+    E = 'E'
 }
 
 export const getZoneClasses = (): ZoneClass[] => {

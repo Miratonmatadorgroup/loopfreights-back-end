@@ -20,4 +20,12 @@ app.get('/', (req, res, next) => {
     });
 });
 
+app.post('/by_place', (req, res, next) => {
+    new ZoneService().getZoneByPlace(req.body).then(result => {
+        sendResponse(res, 200, result);
+    }).catch(err => {
+        sendError(err, next);
+    });
+});
+
 module.exports = app;
