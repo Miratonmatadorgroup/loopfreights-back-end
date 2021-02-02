@@ -21,6 +21,7 @@ import {WalletService} from "../shared/walletService";
 import {EmailTemplateId} from "../../models/interfaces/emailTemplatePayload";
 import {format} from "currency-formatter";
 import {ImageContainer, UploadService} from "../shared/uploadService";
+import util from 'util';
 
 export class DeliveryService {
 
@@ -69,7 +70,7 @@ export class DeliveryService {
 
     public async requestDelivery(userId: string, role: UserRole, files: {originalname: string, filename: string, imageUri?: string}[], body: IDelivery): Promise<IDelivery> {
         console.log('Files:', files);
-        console.log('Body: ', body);
+        console.log('Body: ', util.inspect(body, true, 5, true));
         body.pickUpLocation = JSON.parse(body.pickUpLocation as any);
         body.stops = Array.isArray(body.stops) ? body.stops.map(stop => JSON.parse(stop as any)) : [JSON.parse(body.stops)];
         body = await DeliveryService.validateDelivery(body);
