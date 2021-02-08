@@ -93,6 +93,95 @@ export class NotificationService {
         }
     }
 
+    public static async sendFirebaseMessageV2(notification: IFirebaseNotification, fcmTokens: string[], dryRun = false, ttl = TTL.XX) {
+        const messagingResponse = await Messaging.sendMulticast({
+            apns: {
+                payload: {
+                    aps: {
+                        // alert: {
+                        //   title: notification.title,
+                        //   subtitle: notification.content,
+                        //   body: notification.content,
+                        // },
+                        mutableContent:true,
+                        contentAvailable: true,
+                        sound: 'default'
+                    },
+                },
+                headers: {
+                    'apns-priority': '5',
+                    'apns-push-type': 'alert',
+                }
+            },
+            webpush: {
+                headers: {
+                    Urgency: 'high',
+                },
+                fcmOptions: {
+                    link: 'https://medical.aeglehealth.io',
+                },
+                notification: {
+                    icon:
+                        'https://res.cloudinary.com/teamgrace/image/upload/v1593795514/aegle_zuw2gc.png',
+                    requireInteraction: true,
+                    vibrate: 23,
+                    // timestamp: Date.now(),
+                    tag: notification.tag,
+                    title: notification.title,
+                    body: notification.content,
+                },
+                data: {
+                    event: notification.tag,
+                    notification: JSON.stringify(notification)
+                }
+            },
+            android: {
+                priority: 'high',
+                notification: {
+                    color: '#1b2cc1',
+                    icon:
+                        'https://res.cloudinary.com/teamgrace/image/upload/v1593795514/aegle_zuw2gc.png',
+                    channelId: '',
+                    defaultSound: true,
+                    defaultVibrateTimings: true,
+                    // eventTimestamp: new Date(),
+                    notificationCount: 0,
+                    visibility: 'public',
+                    ticker: notification.ticker,
+                    title: notification.title,
+                    body: notification.content,
+                    priority: "max"
+                },
+                data: {
+                    event: notification.tag,
+                    notification: JSON.stringify(notification)
+                }
+            },
+            data: {
+                event: notification.tag,
+                notification: JSON.stringify(notification),
+            },
+            notification: {
+                title: notification.title,
+                body: notification.content
+            },
+            tokens: fcmTokens
+        }, dryRun)
+        console.log('Fcm response: ', util.inspect(messagingResponse, true, 5, true));
+        if (messagingResponse.failureCount > 0) {
+            const failedTokens: string[] = [];
+            messagingResponse.responses.forEach((result, index) => {
+                if (result.error && (result.error.code === 'messaging/registration-token-not-registered'
+                    || result.error.code === 'messaging/mismatched-credential'
+                    || result.error.code === 'messaging/invalid-registration-token')) {
+                    failedTokens.push(fcmTokens[index]);
+                }
+            });
+            this.removeFailedFcmTokens(failedTokens);
+        }
+        return messagingResponse;
+    }
+
     public static async sendFirebaseMessage(notification: IFirebaseNotification, fcmTokens: string[], dryRun = false, ttl = TTL.XX) {
         delete notification.payload;
         console.warn(`Sending notification to: ${fcmTokens}`);
