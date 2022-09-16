@@ -6,8 +6,11 @@
     "node": "12.19.0"
   },
   "scripts": {
+    "build": "tsc --skipLibCheck",
+    "prestart": "tsc --skipLibCheck",
     "start": "node bin/www",
-    "build": "tsc"
+    "devStart": "tsc && nodemon bin/www",
+    "prodStart": "tsc && node bin/www"
   },
   "dependencies": {
     "@sendgrid/mail": "^7.2.4",

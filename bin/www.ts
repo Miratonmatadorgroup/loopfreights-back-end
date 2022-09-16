@@ -8,14 +8,14 @@ import {PlatformConfigurationService} from "../services/admins/platformConfigura
  */
 
 const app = require('../app');
-const debug = require('debug')('sayacore:server');
+const debug = require('debug')('loops:server');
 const http = require('http');
 
 /**
  * Get port from environment and supplier in Express.
  */
 
-const port = normalizePort(process.env.PORT || '8082');
+const port = normalizePort(process.env.PORT || '80');
 app.set('port', port);
 
 /**
