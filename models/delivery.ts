@@ -8,25 +8,23 @@ import {DeliveryState} from "./enums/deliveryState";
 import {IBaseLocation} from "./interfaces/location";
 import {locationDef} from "./defs/locationDef";
 import {IDriverLocation} from "./driverLocation";
-import {IZone} from "./zone";
-import {zoneDef} from "./defs/zoneDef";
+import {weightClassDef} from "./defs/weightClassDef";
+import {ICarriageType} from "./carriageType";
+import {carriageTypeDef} from "./defs/carriageTypeDef";
+import {IWeightClass} from "./weightClass";
 
-export interface IDeliveryLocation extends IBaseLocation {
-    zone?: IZone;
-}
 export interface IParcel extends IBaseDocument {
-    title: string;
-    category: string;
+    description: string
     quantity: number;
     contentUri: string;
+    weight: number;
 }
 
 export interface IStop extends IBaseDocument {
     identifier: string;
     receiver: string | IUser | undefined;
-    location: IDeliveryLocation;
+    location: IBaseLocation;
     state: DeliveryState.PENDING | DeliveryState.DROPPING_OFF | DeliveryState.AWAITING_SIGNATURE | DeliveryState.COMPLETE;
-    zone: IZone;
     pickUpStartTime: Date;
     dropOffStartTime: Date;
     dropOffEndTime: Date;
@@ -43,10 +41,12 @@ export interface IStop extends IBaseDocument {
 export interface IDelivery extends IBaseDocument {
     sender: string | IUser;
     driverLocation: IDriverLocation | undefined;
-    pickUpLocation: IDeliveryLocation;
+    pickUpLocation: IBaseLocation;
     stops: IStop[];
     billing: IBilling;
     state: DeliveryState;
+    reviewed: boolean
+    approved: boolean
     deliveryId: string;
     acceptedTime: Date;
     arrivalTime: Date;
@@ -56,6 +56,7 @@ export interface IDelivery extends IBaseDocument {
     pathToNextStop: string;
     userRating: number;
     riderRating: number;
+    adminComment: string;
     userComment: string;
     riderComment: string;
 }
@@ -65,11 +66,11 @@ const deliverySchema = new Schema({
     state: {type: String, default: DeliveryState.PENDING},
     deliveryId: {type: String, default: generate({pattern: "###-###", length: 1, charset: charset("alphanumeric")})[0]},
     billing: billingDef,
-    pickUpLocation: Object.assign({
-        zone: zoneDef
-    }, locationDef),
+    pickUpLocation: locationDef,
     acceptedTime: {type: Date},
     arrivalTime: {type: Date},
+    reviewed: {type: Boolean, default: false},
+    approved: {type: Boolean, default: false},
     lastMessageToDriver: {type: String, default: 'Please proceed to pick up'},
     lastMessageToSender: {type: String, default: 'Driver is coming to you'},
     driverLocation: Object.assign({
@@ -78,22 +79,24 @@ const deliverySchema = new Schema({
     stops: {
         type: [{
             identifier: {type: String, required: true},
-            location: Object.assign({
-                zone: zoneDef
-            }, locationDef),
             receiver: {type: Schema.Types.ObjectId, ref: 'user', required: false},
             state: {type: String, default: DeliveryState.PENDING},
-            verificationCode: {type: String, required: true, default: generate({charset: '1234567890', length: 4, count: 1})[0]},
+            verificationCode: {
+                type: String,
+                required: true,
+                default: generate({charset: '1234567890', length: 4, count: 1})[0]
+            },
             dropOffStartTime: {type: Date},
             dropOffEndTime: {type: Date},
             dropOffConfirmed: {type: Boolean, default: false},
             lastMessageToReceiver: {type: String, default: 'Driver has accepted delivery'},
             parcel: {
-                title: {type: String, required: true},
-                category: {type: Schema.Types.ObjectId, required: true},
+                description: {type: String, required: true},
                 quantity: {type: Number, default: 1},
-                contentUri: {type: String, required: true}
+                contentUri: {type: String, required: true},
+                weight: {type: Number, required: true}
             },
+            location: locationDef,
             rawReceiver: {
                 name: {type: String, required: true},
                 phone: {type: String, required: true}
@@ -104,11 +107,12 @@ const deliverySchema = new Schema({
     pathToNextStop: {type: String, required: false},
     userRating: {type: Number, default: 0},
     riderRating: {type: Number, default: 0},
+    adminComment: {type: String},
     userComment: {type: String},
     riderComment: {type: String}
 }, {timestamps: true});
 
-deliverySchema.pre('save', function(this: IDelivery, next) {
+deliverySchema.pre('save', function (this: IDelivery, next) {
     this.pickUpLocation.type = 'Point';
     this.pickUpLocation.coordinates = [this.pickUpLocation.longitude, this.pickUpLocation.latitude];
     for (const stop of this.stops) {

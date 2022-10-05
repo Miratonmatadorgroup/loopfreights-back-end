@@ -21,7 +21,7 @@ export class PlatformConfigurationService {
     public static ensurePlatformConfigurations() {
         new Promise(async (resolve) => {
             await PlatformConfiguration.findOneAndUpdate({}, {}, getUpdateOptions());
-            resolve();
+            resolve(null);
         }).catch(err => {
             console.error('Error ensuring platform configuration', err);
             process.exit(1);

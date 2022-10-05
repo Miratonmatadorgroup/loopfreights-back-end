@@ -41,7 +41,7 @@ export class PromotionsService {
             for (const participant of promotion.participants) {
                 await walletService.giveBonusValue(participant, promotion.role, promotion.value, promotion.description);
             }
-            resolve();
+            resolve(null);
         }).catch(err => {
             console.error('Error distributing promotion: ', err);
         })

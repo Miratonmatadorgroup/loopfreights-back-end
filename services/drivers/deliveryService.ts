@@ -375,7 +375,7 @@ export class DeliveryService {
                         }, NotificationStrategy.SOCKET_ONLY, false);
                     }
                 }
-                accept();
+                accept(null);
             } catch (e) {
                 reject(e);
             }

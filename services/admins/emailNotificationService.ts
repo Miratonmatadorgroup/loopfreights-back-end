@@ -31,7 +31,7 @@ export class EmailNotificationService {
             }).catch(err => {
                 reject(err);
             });
-            accept();
+            accept(null);
         }).catch(err => {
             console.error('SendGrid send error: ', err);
         });
