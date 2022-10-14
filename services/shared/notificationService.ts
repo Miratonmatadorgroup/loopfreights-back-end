@@ -52,7 +52,7 @@ export class NotificationService {
                 default:
                     console.warn(`Unsupported strategy '${strategy}'`);
             }
-            accept();
+            accept(null);
         }).catch(err => {
             console.error('Notification error: ', err);
         });
@@ -216,7 +216,7 @@ export class NotificationService {
         new Promise(async (accept, reject) => {
             try {
                 await FcmToken.deleteMany({token: {$in: fcmTokens}}).exec();
-                accept();
+                accept(null);
             } catch (e) {
                 reject(e);
             }

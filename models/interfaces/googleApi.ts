@@ -1,4 +1,4 @@
-import {IZone} from "../zone";
+
 
 export interface IGoogleResponse {
     status: string;
@@ -88,8 +88,6 @@ export interface IPlace {
     utc_offset: number;
     vicinity: string;
     website: string;
-    // from zone.ts
-    zone?: IZone;
 }
 export interface IPlaceGeoCodedWaypoint {
     geocoder_status: string;

@@ -5,18 +5,22 @@ import {config} from "../../config/config";
 import moment from "moment";
 import Jimp from 'jimp';
 import {S3} from "aws-sdk";
+
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const s3 = new S3({credentials:  {
+const s3 = new S3({
+    credentials: {
         secretAccessKey: config.awsAccessKey,
         accessKeyId: config.awsAccessKeyId,
-    }});
+    }
+});
 
 export enum ImageContainer {
     IMAGES = 'loops-images',
     THUMBNAILS = 'loops-image-thumbnails'
 }
+
 export class UploadService {
 
     public async downsizeImage(file, width, quality = 100, blur): Promise<{
@@ -81,7 +85,8 @@ export class UploadService {
     }
 }
 
-export const upload = multer({storage: multer.diskStorage({
+export const upload = multer({
+    storage: multer.diskStorage({
         destination: (req, file, callback) => {
             callback(null, UploadService.getTempFolder());
         },
@@ -90,7 +95,12 @@ export const upload = multer({storage: multer.diskStorage({
             const fileExtension = "." + fileParts[fileParts.length - 1];
             file.extension = fileExtension;
             // let name =  new Date().toString().replace(/\s+/g, '-').toLowerCase()+fileExtension;
-            const name =  moment(new Date()).format("YYYY-MM-DD--HH:mm:ss").replace(/[\W_]+/g, "-").toLowerCase() + generate({charset: '0123456789', length: 4, count: 1})[0] + fileExtension;
+            const name = moment(new Date()).format("YYYY-MM-DD--HH:mm:ss").replace(/[\W_]+/g, "-").toLowerCase() + generate({
+                charset: '0123456789',
+                length: 4,
+                count: 1
+            })[0] + fileExtension;
             callback(null, name);
         }
-    })});
+    })
+});

@@ -14,7 +14,6 @@ import {GoogleApiRoute, GooglePlaceDetailsSource} from "../../models/enums/googl
 import {config} from "../../config/config";
 import request from "request-promise";
 import {createError} from "../../utils/response";
-import {ZoneService} from "./zoneService";
 
 export class GeolocationService {
 
@@ -46,14 +45,6 @@ export class GeolocationService {
         const result: IReverseGeocodeResponse = await GeolocationService.callGoogle<IReverseGeocodeResponse>(
             GeolocationService.createGoogleMapsUri(GoogleApiRoute.GEOCODE, path)
         );
-        if (includeZone) {
-            const zoneService = new ZoneService();
-            result.results = await Promise.all(result.results.map(async place => {
-                const lgaAndState = GeolocationService.getLGAAndStateFromPlace(place);
-                place.zone = await zoneService.getZoneByLga(lgaAndState.lga, false);
-                return place;
-            }));
-        }
         return result.results;
     }
 
