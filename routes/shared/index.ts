@@ -1,4 +1,6 @@
 import {Router} from "express";
+import {carriageTypesRoute} from "./carriageTypes";
+import {weightClassesRoute} from "./weightClasses";
 const app = Router();
 
 app.use('/accounts', require('./accounts'));
@@ -8,9 +10,9 @@ app.use('/cards', require('./cards'));
 app.use('/geolocation', require('./geolocation'));
 app.use('/notifications', require('./notifications'));
 app.use('/transactions', require('./transactions'));
-app.use('/zones', require('./zones'));
-app.use('/parcel_categories', require('./parcelCategories'));
 app.use('/earnings', require('./earnings'));
 app.use('/banks', require('./banks'));
+app.use('/carriage_types', carriageTypesRoute);
+app.use('/weight_classes', weightClassesRoute);
 
 module.exports = app;

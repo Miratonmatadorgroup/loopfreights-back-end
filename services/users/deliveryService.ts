@@ -13,8 +13,7 @@ import {
 } from "../../models/notification";
 import {NotificationService} from "../shared/notificationService";
 import {UserRole} from "../../models/enums/userRole";
-import {IBilling} from "../../models/interfaces/billing";
-import {ParcelCategoryService} from "../shared/parcelCategoryService";
+import {IBilling, IBillingItem} from "../../models/interfaces/billing";
 import {normalizePhone, stripUpdateFields} from "../../utils/utils";
 import {PaymentMethodType} from "../../models/enums/paymentMethod";
 import {WalletService} from "../shared/walletService";
@@ -22,6 +21,10 @@ import {EmailTemplateId} from "../../models/interfaces/emailTemplatePayload";
 import {format} from "currency-formatter";
 import {ImageContainer, UploadService} from "../shared/uploadService";
 import util from 'util';
+import {GeolocationService} from "../shared/geolocationService";
+import convert from "convert-units";
+import {WeightClassService} from "../shared/weightClassService";
+import {CarriageTypeService} from "../shared/carriageTypeService";
 
 export class DeliveryService {
 
@@ -45,22 +48,74 @@ export class DeliveryService {
 
     public async getBilling(userId: string, delivery: IDelivery): Promise<IBilling> {
         delivery = await DeliveryService.validateDelivery(delivery);
-        const parcelCategoryService = new ParcelCategoryService();
-        const preferenceService = new PreferenceService();
-        const onPeek = false;
-        const paymentMethod = await preferenceService.getPaymentMethodPreference(userId);
-        const stops: IStop[] = await Promise.all([].concat(...delivery.stops).map(async (stop: IStop) => {
-            (stop as any).price = await parcelCategoryService.getCurrentCategoryPrice(stop.parcel.category, stop.location.zone, onPeek);
-            return stop;
-        }));
-        const totalFare: number = stops.reduce((total, currentValue) => {
-            total += (currentValue as any).price;
+        const pickUpLocation = delivery.pickUpLocation;
+        const stops = delivery.stops
+        const totalWeight = stops.reduce((total, currentValue) => {
+            total += currentValue.parcel.weight
             return total;
-        }, 0);
-        return {totalFare, onPeek, paymentMethod};
+        }, 0)
+        console.log('Total weight: ', totalWeight)
+        const geolocationService = new GeolocationService()
+        const distanceMatrix = (await geolocationService.getDistanceMatrix(pickUpLocation.latitude, pickUpLocation.longitude, stops.map(stop => stop.location)))[0]
+        const distanceInMeters = distanceMatrix?.elements[0]?.distance?.value
+        const totalTime = distanceMatrix?.elements[0]?.duration?.value
+        const totalDistance = convert(distanceInMeters).from('m').to('km')
+        console.log('Distance matrix: ', util.inspect(distanceMatrix, true, 5, true))
+        console.log(`>>> Distance in meters: ${distanceInMeters}, distance in kilometers: ${totalDistance}`)
+        const weightClass = await new WeightClassService().getWeightClassByWeight(totalWeight)
+        const carriageType = await new CarriageTypeService().getCarriageTypeByIdentifier(weightClass.carriageTypeIdentifier)
+        const priceForDistance = weightClass.pricePerKm * totalDistance
+        const priceForWeight = totalWeight * weightClass.pricePerKg
+        const priceForTime = 0;
+        const preferenceService = new PreferenceService();
+        const paymentMethod = await preferenceService.getPaymentMethodPreference(userId);
+
+        const currencyFormatOptions: { code: string } = {code: 'NGN'}
+
+        const items: IBillingItem[] = [
+            {
+                title: 'Base Fare',
+                value: weightClass.baseFare,
+                valueText: format(weightClass.baseFare, currencyFormatOptions)
+            },
+            {
+                title: 'Booking Fare',
+                value: weightClass.bookingFee,
+                valueText: format(weightClass.bookingFee, currencyFormatOptions)
+            },
+            {
+                title: 'Distance',
+                value: priceForDistance,
+                valueText: format(priceForDistance, currencyFormatOptions)
+            },
+            {
+                title: 'Weight',
+                value: priceForWeight,
+                valueText: format(priceForWeight, currencyFormatOptions)
+            },
+            {
+                title: 'Time',
+                value: priceForTime,
+                valueText: format(priceForTime, currencyFormatOptions)
+            }
+        ]
+        const totalFare: number = items.reduce((total: number, currentValue) => {
+            total += currentValue.value
+            return total
+        }, 0)
+        const totalFareText = format(totalFare, currencyFormatOptions)
+
+        return {
+            totalFare,
+            totalFareText,
+            items,
+            carriageType,
+            weightClass,
+            paymentMethod
+        };
     }
 
-    public async checkBalance(userId: string, role: UserRole, delivery: IDelivery): Promise<IBilling>  {
+    public async checkBalance(userId: string, role: UserRole, delivery: IDelivery): Promise<IBilling> {
         const billing = await this.getBilling(userId, delivery);
         if (billing.paymentMethod.type === PaymentMethodType.WALLET) {
             await new WalletService().takeValue(userId, role, billing.totalFare, 'Payment for delivery', true);
@@ -68,7 +123,7 @@ export class DeliveryService {
         return billing;
     }
 
-    public async requestDelivery(userId: string, role: UserRole, files: {originalname: string, filename: string, imageUri?: string}[], body: IDelivery): Promise<IDelivery> {
+    public async requestDelivery(userId: string, role: UserRole, files: { originalname: string, filename: string, imageUri?: string }[], body: IDelivery): Promise<IDelivery> {
         console.log('Files:', files);
         console.log('Body: ', util.inspect(body, true, 5, true));
         body.pickUpLocation = JSON.parse(body.pickUpLocation as any);
@@ -118,7 +173,7 @@ export class DeliveryService {
                     },
                     {
                         key: 'parcel',
-                        value: lastStop.parcel.title
+                        value: lastStop.parcel.description
                     },
                     {
                         key: 'price',
@@ -161,12 +216,12 @@ export class DeliveryService {
             if (!stop.rawReceiver?.phone) throw createError(`Receiver phone has not been set at stop ${stopIndex}`, 400);
             if (!stop.location || !stop.location.latitude || !stop.location.longitude)
                 throw createError(`Location has not been set for stop ${stopIndex}`, 400);
-            if (!stop.location.zone) throw createError(`Zone has not been set at stop ${stopIndex}`, 400);
-            if (!stop.location.zone.zoneClass) throw createError(`Zone class has not been set at stop ${stopIndex}`, 400);
+            // if (!stop.location.zone) throw createError(`Zone has not been set at stop ${stopIndex}`, 400);
+            // if (!stop.location.zone.zoneClass) throw createError(`Zone class has not been set at stop ${stopIndex}`, 400);
             if (!stop.parcel) throw createError(`Parcel has not been set at stop ${stopIndex}`, 400);
-            if (!stop.parcel.title) throw createError(`Parcel title has not been set at stop ${stopIndex}`, 400);
-            if (!stop.parcel.category) throw createError(`Parcel category has not been set at stop ${stopIndex}`, 400);
+            if (!stop.parcel.description) throw createError(`Parcel description has not been set at stop ${stopIndex}`, 400);
             if (!stop.parcel.quantity || stop.parcel.quantity < 1) throw createError(`Parcel quantity at stop ${stopIndex} cannot be lower than 1`, 400);
+            if (!stop.parcel.weight || stop.parcel.weight < 1) throw createError(`Parcel weight at stop ${stopIndex} cannot be lower than 1`, 400);
             const phone = normalizePhone(stop.rawReceiver.phone);
             const receiver: IUser = await User.findOne({phone}).lean<IUser>().exec();
             if (receiver) stop.receiver = receiver._id;
